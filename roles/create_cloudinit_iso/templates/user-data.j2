@@ -1,14 +1,16 @@
 #cloud-config
 users:
 - name: "{{ admin_user }}"
-  ssh_authorized_keys: 
+  ssh_authorized_keys:
   - "{{ admin_user_ssh_pubkey }}"
   groups: ["wheel"]
   passwd: "{{ admin_user_password | password_hash('sha512') }}"
   shell: /bin/bash
-  ssh_pwauth: True
-  chpasswd: { expire: False }
   sudo: ['ALL=(ALL) NOPASSWD:ALL']
+
+ssh_pwauth: true
+chpasswd:
+  expire: false
 
 runcmd:
 - echo "Cloud-Init completed successfully" > /var/log/cloud-init-success.log

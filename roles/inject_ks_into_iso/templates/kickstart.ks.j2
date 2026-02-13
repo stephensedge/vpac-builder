@@ -14,15 +14,22 @@
 # setting root password
 rootpw --iscrypted {{ root_password | password_hash('sha512')}}
 
-{% if builder_kickstart_post is defined and builder_kickstart_post | length > 0 %}
 %post --log=/var/log/anaconda/post-install.log --erroronfail
+# Enable cloud-init NoCloud datasource for seed ISO on bare metal
+cat > /etc/cloud/cloud.cfg.d/99-nocloud.cfg << 'NOCLOUD'
+datasource_list: [NoCloud, None]
+datasource:
+  NoCloud:
+    fs_label: cidata
+NOCLOUD
+{% if builder_kickstart_post is defined and builder_kickstart_post | length > 0 %}
 {% for post in builder_kickstart_post %}
 {% if post != "" %}
 {{ post }}
 {% endif %}
 {% endfor %}
+{% endif %}
 echo "anaconda post-install steps completed successfully"
 %end
-{% endif %}
 
 
