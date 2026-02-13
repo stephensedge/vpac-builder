@@ -2,7 +2,7 @@
 # Example playbook that demonstrates how to setup the imagebuilder host using
 # setup_imagebuilder role
 - name: This example playbook shows how to setup imagebuilder
-  hosts: imagebuilder
+  hosts: all
   gather_facts: yes
 
   tasks:

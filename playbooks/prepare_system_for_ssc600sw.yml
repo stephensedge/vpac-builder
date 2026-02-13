@@ -1,7 +1,7 @@
 ---
 # Example playbook to prepare system for ssc600 sw
 - name: Example playbook for prepare system for ssc600 sw
-  hosts: virtualization_hosts
+  hosts: all
   gather_facts: yes
 
   tasks:

@@ -1,7 +1,7 @@
 ---
 # Example playbook for configuring virtualization hosts for realtime workloads
 - name: Example playbook for configuring virtualization hosts for realtime workloads
-  hosts: virtualization_hosts
+  hosts: all
   gather_facts: yes
 
   tasks:

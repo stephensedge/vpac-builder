@@ -2,7 +2,7 @@
 # Example playbook for building customized RHEL ISO images for provisioning
 # RHEL systems for deploying virtualized protection and control workloads
 - name: Example playbook for building customized RHEL ISO images
-  hosts: imagebuilder
+  hosts: all
   gather_facts: yes
 
   tasks:

@@ -1,7 +1,7 @@
 ---
 # Sample playbook for deploying SSC600 SW VM
 - name: Example playbook for deploying ssc600 SW VM
-  hosts: virtualization_hosts
+  hosts: all
   gather_facts: yes
 
   tasks:
