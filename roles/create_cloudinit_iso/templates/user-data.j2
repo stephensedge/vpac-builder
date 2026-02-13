@@ -1,5 +1,6 @@
 #cloud-config
 users:
+- default
 - name: "{{ admin_user }}"
   ssh_authorized_keys:
   - "{{ admin_user_ssh_pubkey }}"
@@ -8,6 +9,20 @@ users:
   lock_passwd: false
   shell: /bin/bash
   sudo: ['ALL=(ALL) NOPASSWD:ALL']
+{% if additional_users is defined %}
+{% for user in additional_users %}
+- name: "{{ user.name }}"
+{% if user.ssh_pubkey is defined %}
+  ssh_authorized_keys:
+  - "{{ user.ssh_pubkey }}"
+{% endif %}
+  groups: ["{{ user.groups | default('wheel') }}"]
+  passwd: "{{ user.password | password_hash('sha512') }}"
+  lock_passwd: false
+  shell: {{ user.shell | default('/bin/bash') }}
+  sudo: ['{{ user.sudo | default("ALL=(ALL) NOPASSWD:ALL") }}']
+{% endfor %}
+{% endif %}
 
 ssh_pwauth: true
 chpasswd:
