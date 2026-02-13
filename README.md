@@ -76,17 +76,7 @@ To provision multiple hosts, create a different seed ISO per host:
 ansible-playbook playbooks/create_cloudinit_iso.yml -i localhost, --connection=local -e hostname=vpac-host2
 ```
 
-### Step 5: Copy ISOs from /tmp
-
-Both playbooks output ISOs to temporary directories owned by root. Copy them somewhere permanent:
-
-```bash
-sudo cp /tmp/ansible.*vpac-rhel9-base/*-ks.iso /home/admin/
-sudo cp /tmp/ansible.*iso/*-seed.iso /home/admin/
-sudo chown admin:admin /home/admin/*.iso
-```
-
-### Step 6: Write ISOs to USB and Deploy
+### Step 5: Write ISOs to USB and Deploy
 
 Write both ISOs to separate USB drives:
 
@@ -223,4 +213,7 @@ Forked from [rprakashg/vpac](https://github.com/rprakashg/vpac). Key adaptations
 - Added `create_cloudinit_iso.yml` playbook for generating cloud-init seed ISOs
 - Added NoCloud datasource config to kickstart `%post` for automatic cloud-init on bare metal
 - Fixed cloud-init user-data schema (`ssh_pwauth` and `chpasswd` moved to top-level)
+- Fixed `lock_passwd: false` on all users — cloud-init locks passwords by default
+- Enabled root SSH login (`PermitRootLogin yes`) via cloud-init runcmd
+- Added `additional_users` template support for provisioning extra users
 - Fixed depsolve assertion logic in `create_image_installer` compose task
