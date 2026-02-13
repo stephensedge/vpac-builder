@@ -2,7 +2,9 @@
 
 Ansible automation for building customized RHEL 9 images and deploying virtualized protection, automation, and control (VPAC) systems for digital electrical substations following IEC 61850.
 
-Based on the [rprakashg/vpac](https://github.com/rprakashg/vpac) Ansible collection, adapted for standalone use on a local build host.
+## Credits
+
+This project is forked from and built upon the work of **Ram Gopinathan** ([@rprakashg](https://github.com/rprakashg)) and his original [rprakashg/vpac](https://github.com/rprakashg/vpac) Ansible collection. His foundational work on the VPAC automation framework made this project possible. This fork adapts the collection for standalone use on a local RHEL 9 build host.
 
 ## Prerequisites
 
@@ -35,11 +37,13 @@ ansible-playbook playbooks/setup_imagebuilder.yml -i localhost, --connection=loc
 
 ### Step 2: Create Secrets File
 
-Create `playbooks/vars/secrets.yml` with your desired root password for the ISO:
+Create `playbooks/vars/secrets.yml` with your credentials:
 
 ```yaml
 ---
 root_password: your_password_here
+admin_user_password: your_password_here
+admin_user_ssh_pubkey: "ssh-ed25519 AAAA... user@host"
 ```
 
 This file is gitignored. Optionally encrypt it:
@@ -58,12 +62,49 @@ ansible-playbook playbooks/create_iso.yml -i localhost, --connection=local --bec
 
 The compose can take a long time (30+ minutes). The playbook polls every 20 seconds until complete.
 
+### Step 4: Create Cloud-Init Seed ISO
+
+Generates a cloud-init seed ISO that configures hostname, admin user, SSH keys, and networking on first boot.
+
+```bash
+ansible-playbook playbooks/create_cloudinit_iso.yml -i localhost, --connection=local
+```
+
+This does not require `--become` — it only creates files in `/tmp`.
+
+### Step 5: Write ISOs to USB and Deploy
+
+Write both ISOs to separate USB drives:
+
+```bash
+sudo dd if=vpac-rhel9-base_0.0.1-ks.iso of=/dev/sdX bs=4M status=progress conv=fsync
+sudo dd if=vpac-host1-seed.iso of=/dev/sdY bs=4M status=progress conv=fsync
+```
+
+Plug both USBs into the target bare-metal host and boot from the kickstart ISO. The installer runs unattended.
+
+**Important:** RHEL 9 disables cloud-init by default on bare metal. After the first boot, you must configure the NoCloud datasource on the target host for cloud-init to pick up the seed USB:
+
+```bash
+cat > /etc/cloud/cloud.cfg.d/99-nocloud.cfg << 'EOF'
+datasource_list: [NoCloud, None]
+datasource:
+  NoCloud:
+    fs_label: cidata
+EOF
+cloud-init clean --logs
+reboot
+```
+
+After reboot, cloud-init will detect the seed USB (labeled `cidata`) and apply the hostname, user, and SSH key configuration.
+
 ## Playbooks
 
 | Playbook | Description |
 |----------|-------------|
 | `setup_imagebuilder.yml` | Configure Image Builder host with required repos and services |
 | `create_iso.yml` | Build custom RHEL 9 ISO with kickstart for unattended install |
+| `create_cloudinit_iso.yml` | Generate cloud-init seed ISO for first-boot host configuration |
 | `enable_virtualization.yml` | Enable KVM virtualization on the host |
 | `prepare_system_for_rt.yml` | Configure host for real-time workloads (kernel-rt, hugepages, CPU tuning) |
 | `prepare_system_for_ssc600sw.yml` | Prepare host for SSC600 SW deployment |
@@ -121,6 +162,7 @@ vpac-custom/
 ├── playbooks/
 │   ├── setup_imagebuilder.yml
 │   ├── create_iso.yml
+│   ├── create_cloudinit_iso.yml
 │   ├── enable_virtualization.yml
 │   ├── prepare_system_for_rt.yml
 │   ├── prepare_system_for_ssc600sw.yml
@@ -147,11 +189,12 @@ vpac-custom/
     └── configure_windows/
 ```
 
-## Upstream
+## Changes from Upstream
 
 Forked from [rprakashg/vpac](https://github.com/rprakashg/vpac). Key adaptations:
 
 - Playbook `hosts:` changed from inventory groups to `all` for standalone localhost use
 - Role references changed from fully-qualified collection names (`rprakashg.vpac.*`) to local names
 - Added `ansible.cfg` with `roles_path` for standalone execution
+- Added `create_cloudinit_iso.yml` playbook for generating cloud-init seed ISOs
 - Fixed depsolve assertion logic in `create_image_installer` compose task
