@@ -1,0 +1,26 @@
+[Unit]
+Description=Grafana Loki Log aggregation system
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=loki
+Group=loki
+Type=simple
+ExecStart=/usr/local/bin/loki -config.file=/etc/loki/loki-config.yaml
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=1048576
+WorkingDirectory=/var/lib/loki
+
+#Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

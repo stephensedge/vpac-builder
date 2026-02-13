@@ -1,0 +1,10 @@
+---
+# Preflight steps
+- name: Validate a builder blueprint name is passed
+  ansible.builtin.assert:
+    that:
+    - builder_blueprint_name is defined
+    - builder_blueprint_name != ""
+    fail_msg: "'builder_blueprint_name' is required"
+    success_msg: "Got 'builder_blueprint_name'"
+

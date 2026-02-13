@@ -1,0 +1,26 @@
+---
+# preflight steps
+- name: Create a directory under libvirt images directory for VM
+  ansible.builtin.file:
+    state: directory
+    path: "{{ vm_disk_path }}"
+    owner: root
+    group: root
+    mode: '0755'
+    
+- name: Get virtual machine info
+  community.libvirt.virt:
+    command: info
+    name: "{{ vm_name }}"
+  register: vminfo
+
+- name: Stop the vm if it exists
+  when:
+  - not vminfo.vms is none
+  community.libvirt.virt:
+    state: destroyed
+    name: "{{ vm_name }}"
+
+- name: Undefine vm
+  community.libvirt.virt:
+    command: "virsh undefine --nvram {{ vm_name }}"

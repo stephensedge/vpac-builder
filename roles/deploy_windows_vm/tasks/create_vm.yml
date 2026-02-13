@@ -1,0 +1,48 @@
+---
+# This task creates windows virtual machine on virtualization host
+- name: Start
+  ansible.builtin.debug:
+    msg: "Starting create windows virtual machine with qcow2 disk image"
+
+- name: Make directory for windows vm
+  ansible.builtin.file:
+    path: "{{ libvirt_images_dir }}/{{ vm_name }}"
+    state: directory
+
+- name: Create the disk image
+  ansible.builtin.shell: |
+    qemu-img create -f qcow2 {{ libvirt_images_dir }}/{{ vm_name}}/{{ qcow2_disk_image }} {{ disk_size }}G
+
+- name: Create the windows 11 vm
+  ansible.builtin.command: |
+    virt-install --connect qemu:///system \
+      --name {{ vm_name }} \
+      --memory {{ vm_memory }} \
+      --vcpus {{ vm_vcpus }} \
+      --cpu host-passthrough \
+      --os-variant win11 \
+      --boot cdrom,hd,menu=off \
+      --network network=default,model=virtio \
+      --graphics vnc \
+      --disk path={{ libvirt_images_dir }}/{{ vm_name }}/{{ qcow2_disk_image }},device=disk,bus=sata,size={{ disk_size }},format=qcow2,boot.order=1 \
+      --disk path={{ software_dir }}/{{ windows_iso_modified }},device=cdrom,bus=sata,boot.order=2 \
+      --disk path={{ software_dir }}/virtio-win-0.1.285.iso,device=cdrom,bus=sata \
+      --disk path={{ software_dir }}/autounattend.iso,device=cdrom,bus=sata \
+      --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
+      --check all=on \
+      --noautoconsole
+  async: "{{ wait }}"
+  poll: 0
+  register: install_task
+
+- name: Wait for virt install to complete
+  ansible.builtin.async_status:
+    jid: "{{ install_task.ansible_job_id }}"
+  register: install_result
+  until: install_result.finished
+  retries: "{{ retries }}"
+  delay: "{{ delay }}"
+
+- name: debug
+  ansible.builtin.debug:
+    var: install_task

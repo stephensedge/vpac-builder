@@ -1,0 +1,23 @@
+[Unit]
+Description=Gitea container
+PartOf=gitea.target
+After=gitea-init.service
+Wants=gitea-init.service
+
+[Container]
+Image={{ gitea_image }}
+ContainerName=gitea
+PublishPort={{ gitea_port }}:3000
+PublishPort=222:22
+Volume=gitea-data:/data:Z
+Volume=/etc/localtime:/etc/localtime:ro
+Environment=USER_UID=1000
+Environment=USER_GID=1000
+
+
+[Service]
+TimeoutStartSec=120
+Restart=on-failure
+
+[Install]
+WantedBy=gitea.target

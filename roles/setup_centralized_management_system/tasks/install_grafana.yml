@@ -1,0 +1,56 @@
+---
+# This task install grafana for visualization dashboards
+- name: Download the GPG key for grafana repos
+  ansible.builtin.shell: |
+    curl --silent --location -O \
+    https://packages.grafana.com/gpg.key \
+    && echo "3d4029689bc7e4444ec00abafa07f21e9c812b41f1123ab5bbe6f8c3e3f7ff8c  gpg.key" \
+    | sha256sum --check - && cat gpg.key \
+    | gpg --dearmor \
+    | tee /etc/pki/rpm-gpg/RPM-GPG-KEY-grafana > /dev/null
+
+- name: Create a grafana repo file
+  ansible.builtin.copy:
+    dest: /etc/yum.repos.d/grafana.repo
+    content: |
+      [grafana]
+      name = Grafana OSS
+      baseurl = https://packages.grafana.com/oss/rpm
+      repo_gpgcheck = 1
+      enabled = 1
+      gpgcheck = 1
+      gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-grafana
+
+- name: Install Grafana
+  ansible.builtin.dnf:
+    name: grafana
+    state: latest
+
+- name: Download an example grafana ini file
+  ansible.builtin.shell: |
+    wget https://raw.githubusercontent.com/grafana/grafana/refs/heads/main/conf/sample.ini -O /etc/grafana/grafana.ini
+
+- name: Enable Grafana
+  ansible.builtin.systemd:
+    name: grafana-server.service
+    state: started
+    enabled: yes
+
+- name: Check if firewalld is installed
+  shell: rpm -q firewalld
+  register: firewalld_installed
+  ignore_errors: yes
+
+- name: Open TCP ports for influx
+  when: firewalld_installed.rc == 0
+  firewalld:
+    port: "{{ grafana_port | default('3000') }}/tcp"
+    permanent: yes
+    state: enabled
+    zone: public
+
+- name: Reload firewall
+  when: firewalld_installed.rc == 0
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded

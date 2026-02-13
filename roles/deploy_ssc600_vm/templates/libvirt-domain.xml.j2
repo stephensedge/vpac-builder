@@ -1,0 +1,98 @@
+<domain type="kvm">
+  <name>{{ ssc600_vm.name }}</name>
+  <memory unit="KiB">6291456</memory>
+  <currentMemory unit="KiB">6291456</currentMemory>
+  <memoryBacking>
+    <hugepages/>
+    <nosharepages/>
+     <access mode="shared"/>
+    <locked/>
+  </memoryBacking>
+  <vcpu placement="static">4</vcpu>
+  <cputune>
+    <vcpupin vcpu="0" cpuset="{{ ssc600_vm.core0 }}"/>
+    <vcpupin vcpu="1" cpuset="{{ ssc600_vm.core1 }}"/>
+    <vcpupin vcpu="2" cpuset="{{ ssc600_vm.core2 }}"/>
+    <vcpupin vcpu="3" cpuset="{{ ssc600_vm.core3 }}"/>
+    <emulatorpin cpuset="{{ ssc600_vm.core_qemu }}"/>
+    <vcpusched vcpus="0" scheduler="fifo" priority="50"/>
+    <vcpusched vcpus="1" scheduler="fifo" priority="50"/>
+    <vcpusched vcpus="2" scheduler="fifo" priority="50"/>
+    <vcpusched vcpus="3" scheduler="fifo" priority="50"/>
+  </cputune>
+  <os>
+    <type arch="x86_64" machine="pc-q35-rhel9.6.0">hvm</type>
+    <boot dev="hd"/>
+  </os>
+  <features>
+    <acpi/>
+    <apic eoi="on"/>
+    <kvm>
+      <hint-dedicated state="on"/>
+      <poll-control state="off"/>
+      <pv-ipi state="on"/>
+    </kvm>
+    <pmu state="off"/>
+    <vmport state="off"/>
+  </features>
+  <cpu mode="host-passthrough" check="none">
+    <topology sockets="1" cores="4" threads="1"/>
+    <cache mode="passthrough"/>
+  </cpu>
+  <clock offset="utc">
+    <timer name="rtc" tickpolicy="catchup"/>
+    <timer name="pit" tickpolicy="delay"/>
+    <timer name="hpet" present="no"/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <pm>
+    <suspend-to-mem enabled="no"/>
+    <suspend-to-disk enabled="no"/>
+  </pm>
+  <devices>
+	 <emulator>/usr/libexec/qemu-kvm</emulator>
+    <disk type="file" device="disk">
+      <driver name="qemu" type="raw" cache="none" io="threads"/>
+      <source file="{{ ssc600_vm.path }}/{{ ssc600_vm.name }}.img"/>
+      <target dev="vda" bus="virtio"/>
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x05" function="0x0"/>
+    </disk>
+    <controller type="usb" index="0" model="none"/>
+    <controller type="pci" index="0" model="pcie-root"/>
+    <controller type="virtio-serial" index="0">
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x06" function="0x0"/>
+    </controller>
+    <filesystem type="mount">
+      <driver type="virtiofs"/>
+      <source dir="{{ ssc600_ptp.status_dir }}"/>
+      <target dir="ptp"/>
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x04" function="0x0"/>
+    </filesystem>
+    <interface type="network">
+      <mac/>
+      <source network="station-bus"/>
+      <model type="virtio"/>
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x02" function="0x0"/>
+    </interface>
+    <interface type='direct' trustGuestRxFilters='yes'>
+      <source dev='{{ ssc600_vm.pb_nic }}' mode='vepa'/>
+      <target dev='macvtap0'/>
+      <model type='virtio'/>
+      <alias name='net1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+    <graphics type='vnc' port='5900' autoport='yes' listen='0.0.0.0'>
+    </graphics>
+    <console type="pty">
+      <target type="virtio" port="0"/>
+    </console>
+    <input type="mouse" bus="ps2"/>
+    <input type="keyboard" bus="ps2"/>
+    <watchdog model="i6300esb" action="reset">
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x08" function="0x0"/>
+    </watchdog>
+    <memballoon model="none"/>
+  </devices>
+</domain>

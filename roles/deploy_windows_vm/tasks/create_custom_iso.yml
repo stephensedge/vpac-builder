@@ -1,0 +1,61 @@
+---
+# This task injects an autounattend.xml answerfile into original windows 11 ISO
+# and creates a custom ISO for installing windows 11 pro unattended
+- name: Start
+  ansible.builtin.debug:
+    msg: "Start: build custom ISO"
+
+- name: Creating windows answer file
+  block:
+  - name: Create a temp directory
+    ansible.builtin.tempfile:
+      suffix: auto
+      state: directory
+    register: tempdir_result
+  - name: Set directory path in fact
+    ansible.builtin.set_fact:
+      outdir: "{{ tempdir_result.path }}"
+  - name: Create autounattend.xml file from the template
+    ansible.builtin.template:
+      src: 'autounattend.xml.j2'
+      dest: "{{ outdir }}/Autounattend.xml"
+
+- name: Mount the original windows ISO and copy all of it contents to a temp directory
+  block:
+  - name: Create a directory under Mount
+    ansible.builtin.file:
+      state: directory
+      path: /mnt/win11
+      mode: 0644
+  - name: Mount default ISO
+    ansible.builtin.shell: |
+      mount -o loop {{ software_dir }}/{{ windows_iso }} /mnt/win11
+  - name: Create a temp directory to store original ISO content
+    ansible.builtin.tempfile:
+      suffix: auto
+      state: directory
+    register: win11_iso_dir_result
+  - name: Set directory path in fact
+    ansible.builtin.set_fact:
+      win11_iso_dir: "{{ win11_iso_dir_result.path }}"
+  - name: Copy * from mnt/win11/*
+    ansible.builtin.copy:
+      src: "/mnt/win11"
+      dest: "{{ win11_iso_dir }}"
+      remote_src: yes
+
+- name: Make a new custom ISO
+  ansible.builtin.shell: |
+    mkisofs \
+      -iso-level 4 \
+      -rock \
+      -disable-deep-relocation \
+      -untranslated-filenames \
+      -b boot/etfsboot.com \
+      -no-emul-boot \
+      -boot-load-size 8 \
+      -eltorito-alt-boot \
+      -eltorito-platform efi \
+      -b efi/microsoft/boot/efisys_noprompt.bin \
+      -o {{ software_dir }}\{{ windows_iso_modified }} \
+      {{ win11_iso_dir }} {{ outdir }}

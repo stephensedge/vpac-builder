@@ -1,0 +1,50 @@
+---
+# This task configures PTP for SSC600 SW
+# Reused from https://github.com/kwozyman/vpac
+- name: Ensure ptp status directory exists
+  ansible.builtin.file:
+    path: "{{ ssc600_ptp.status_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: u=rwX,g=rX,o=rX
+
+- name: Deploy the ptp status shell script
+  ansible.builtin.template:
+    dest: /usr/sbin/ptp_status.sh
+    src: ptp_status.sh
+    mode: u=rwx,g=rx,o=rx
+    owner: root
+    group: root
+  register: ptp_status_shell
+
+- name: Deploy the ptp status service
+  ansible.builtin.template:
+    dest: /etc/systemd/system/ptp_status.service
+    src: ptp_status.service.j2
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  register: ptp_status_service
+
+- name: Ensure the [ptp4l] section has the correct options value for autodetection
+  ansible.builtin.lineinfile:
+    path: /etc/timemaster.conf
+    regexp: "^options"
+    line: "options {{ ssc600_ptp.ptp4l_options }}"
+    insertafter: '^\[ptp4l\]$'
+  register: timemaster_config
+
+- name: Restart timemaster service
+  ansible.builtin.service:
+    name: timemaster
+    enabled: true
+    state: restarted
+  when: timemaster_config.changed
+
+- name: Restart PTP status service
+  ansible.builtin.service:
+    name: ptp_status
+    enabled: true
+    state: restarted
+  when: ptp_status_shell.changed or ptp_status_service.changed

@@ -1,0 +1,79 @@
+# This is the Ansible Automation Platform installer inventory file intended for the container growth deployment topology.
+# This inventory file expects to be run from the host where Ansible Automation Platform will be installed.
+# Consult the Ansible Automation Platform product documentation about this topology's tested hardware configuration.
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/tested_deployment_models/container-topologies
+#
+# Consult the docs if you are unsure what to add
+# For all optional variables consult the included README.md
+# or the Ansible Automation Platform documentation:
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation
+
+# This section is for your platform gateway hosts
+# -----------------------------------------------------
+[automationgateway]
+{{ node_fqdn }}
+
+# This section is for your automation controller hosts
+# -----------------------------------------------------
+[automationcontroller]
+{{ node_fqdn }}
+
+# This section is for your automation hub hosts
+# -----------------------------------------------------
+[automationhub]
+{{ node_fqdn }}
+
+# This section is for your Event-Driven Ansible controller hosts
+# -----------------------------------------------------
+[automationeda]
+{{ node_fqdn }}
+
+# This section is for the Ansible Automation Platform database
+# -----------------------------------------------------
+[database]
+{{ node_fqdn }}
+
+[all:vars]
+# Ansible
+ansible_connection=local
+
+# Common variables
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#general-variables
+# -----------------------------------------------------
+postgresql_admin_username=postgres
+postgresql_admin_password={{ aap_default_password }}
+
+registry_username={{ rh_user }}
+registry_password={{ rh_user_password }}
+
+redis_mode=standalone
+
+# Platform gateway
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#platform-gateway-variables
+# -----------------------------------------------------
+gateway_admin_password={{ aap_default_password }}
+gateway_pg_host={{ node_fqdn }}
+gateway_pg_password={{ aap_default_password }}
+
+# Automation controller
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#controller-variables
+# -----------------------------------------------------
+controller_admin_password={{ aap_default_password }}
+controller_pg_host={{ node_fqdn }}
+controller_pg_password={{ aap_default_password }}
+controller_percent_memory_capacity=0.5
+
+# Automation hub
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#hub-variables
+# -----------------------------------------------------
+hub_admin_password={{ aap_default_password }}
+hub_pg_host={{ node_fqdn }}
+hub_pg_password={{ aap_default_password }}
+hub_seed_collections=false
+
+# Event-Driven Ansible controller
+# https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.5/html/containerized_installation/appendix-inventory-files-vars#event-driven-ansible-variables
+# -----------------------------------------------------
+eda_admin_password={{ aap_default_password }}
+eda_pg_host={{ node_fqdn }}
+eda_pg_password={{ aap_default_password }}

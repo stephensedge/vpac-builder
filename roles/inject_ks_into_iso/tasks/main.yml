@@ -1,0 +1,18 @@
+---
+# tasks file for ./roles/inject_ks_into_iso
+- name: Preflight steps
+  ansible.builtin.import_tasks: preflight.yml
+
+#- name: Get compose job id for last successful
+#  when: compose_job_id = ""
+#  ansible.builtin.shell: |
+  
+- name: Download artifact
+  when: compose_job_id != ""
+  become: yes
+  ansible.builtin.import_tasks: download_artifact.yml
+
+- name: Create custom iso
+  when: compose_job_id != ""
+  become: yes
+  ansible.builtin.import_tasks: inject_ks.yml

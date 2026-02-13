@@ -1,0 +1,50 @@
+---
+# tasks file for ./roles/create_cloudinit_iso
+- name: Generate cloud-init files
+  block:
+  - name: Create a temp directory to store the ISO
+    ansible.builtin.tempfile:
+      state: directory
+      suffix: "cloudinit"
+    register: tempdir_result
+  - name: Set the directory path in fact
+    ansible.builtin.set_fact:
+      cloudinit_files: "{{ tempdir_result.path }}"
+  - name: Generate a random guid to be used as instance id in cloud-init metadata file
+    ansible.builtin.shell: |
+      uuidgen
+    register: uuidgen_result
+  - name: Set instance id in fact
+    ansible.builtin.set_fact:
+      instance_id: "{{ uuidgen_result.stdout }}"
+  - name: Generate cloud-init metadata file
+    ansible.builtin.template:
+      src: "meta-data.j2"
+      dest: "{{ cloudinit_files }}/meta-data"
+      mode: "0755"
+  - name: Generate user-data file
+    ansible.builtin.template:
+      src: "user-data.j2"
+      dest: "{{ cloudinit_files }}/user-data"
+      mode: "0755"
+  - name: Generate network-config file
+    ansible.builtin.template:
+      src: "network-config.j2"
+      dest: "{{ cloudinit_files }}/network-config"
+      mode: "0755"
+- name: Create cloud init iso
+  block:
+  - name: Make a temp directory to store cloudinit ISO
+    ansible.builtin.tempfile:
+      state: directory
+      suffix: "iso"
+    register: isodir_result
+  - name: Set path in variable
+    ansible.builtin.set_fact:
+      iso_dir: "{{ isodir_result.path }}"
+  - name: Create the cloudinit ISO
+    ansible.builtin.shell: |
+      genisoimage -output {{ iso_dir }}/{{ iso_name }} -volid cidata -joliet -rock {{ cloudinit_files }}/
+  - name: Print full path of cloud-init iso
+    ansible.builtin.debug:
+      msg: "Download CloudInit ISO from -> {{ iso_dir }}/{{ iso_name }}"

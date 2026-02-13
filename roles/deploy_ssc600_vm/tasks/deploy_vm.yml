@@ -1,0 +1,78 @@
+---
+# reused from https://github.com/kwozyman/vpac
+- name: Install libvirt
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - libvirt
+    - virt-install
+    - virt-viewer
+
+- name: Ensure libvirt directory exists
+  ansible.builtin.file:
+    path: "{{ ssc600_vm.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: u=rwX,g=rX,o=rX
+
+- name: Write libvirt XML template
+  ansible.builtin.template:
+    src: libvirt-domain.xml.j2
+    dest: "{{ ssc600_vm.path }}/{{ ssc600_vm.name }}.xml"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: Write virtual network XML template
+  ansible.builtin.template:
+    src: libvirt-network.xml.j2
+    dest: "{{ ssc600_vm.path }}/station-bus.xml"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: Copy ABB clean disk
+  ansible.builtin.copy:
+    src: "{{ ssc600_bundle.extracted_path }}/virtual_products/ssc600_disk.img"
+    dest: "{{ ssc600_vm.path }}/{{ ssc600_vm.name }}.img"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+    remote_src: true
+
+- name: Ensure libvirt directory exists
+  ansible.builtin.file:
+    path: /etc/libvirt/hooks
+    state: directory
+    owner: root
+    group: root
+    mode: u=rwX,g=rX,o=rX
+
+- name: Setup qemu hook
+  ansible.builtin.template:
+    src: qemu.hook
+    dest: /etc/libvirt/hooks/qemu
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+
+- name: Start libvirt service
+  ansible.builtin.service:
+    name: libvirtd
+    state: restarted
+    enabled: true
+
+- name: Setup virt network station-bus
+  community.libvirt.virt_net:
+    command: define
+    name: station-bus
+    xml: '{{ lookup("template", "libvirt-network.xml.j2") }}'
+    autostart: true
+
+- name: Define virt domain
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', 'libvirt-domain.xml.j2') }}"
+    autostart: true

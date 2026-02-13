@@ -1,0 +1,21 @@
+---
+# tasks file for ./roles/prepare_system_for_ssc600sw
+- name: Configure networking
+  become: yes
+  ansible.builtin.import_tasks: configure_networking.yml
+  
+- name: Download and extract SSC600 SW bundle
+  become: yes
+  ansible.builtin.import_tasks: download_extract_ssc600_bundle.yml
+
+- name: Perform host startup configurations
+  become: yes
+  ansible.builtin.import_tasks: startup_service.yml
+
+- name: Configure PTP
+  become: yes
+  ansible.builtin.import_tasks: configure_ptp.yml
+
+- name: Configure modprobe options for SSC600 SW
+  become: yes
+  ansible.builtin.import_tasks: configure_modprobe.yml

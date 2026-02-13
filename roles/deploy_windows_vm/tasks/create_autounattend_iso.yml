@@ -1,0 +1,27 @@
+---
+# This tasks creates autounattend floppy disk image for unattended installation 
+# of windows 11
+- name: Start
+  ansible.builtin.debug:
+    msg: "Starting building autounattend iso"
+
+- name: Creating windows answer file
+  block:
+  - name: Create a temp directory
+    ansible.builtin.tempfile:
+      suffix: auto
+      state: directory
+    register: tempdir_result
+  - name: Set directory path in fact
+    ansible.builtin.set_fact:
+      outdir: "{{ tempdir_result.path }}"
+  - name: Create autounattend.xml file from the template
+    ansible.builtin.template:
+      src: 'autounattend.xml.j2'
+      dest: "{{ outdir }}/Autounattend.xml"
+
+- name: Create autounattend iso
+  ansible.builtin.shell: |
+    mkisofs -o {{ software_dir }}/autounattend.iso -V AUTOUNATTEND {{ outdir }}
+  args:
+    creates: "{{ software_dir }}/autounattend.iso"

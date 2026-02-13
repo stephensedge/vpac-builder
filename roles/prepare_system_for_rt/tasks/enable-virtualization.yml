@@ -1,0 +1,28 @@
+---
+# this task enables virtualization on the host
+# Reused from https://github.com/kwozyman/vpac
+- name: Installing helpful packages
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - qemu-kvm
+    - libvirt
+    - virt-install
+    - virt-viewer
+
+- name: Run virt-host-validate
+  ansible.builtin.shell: |
+    virt-host-validate
+  register: validation_status
+
+- name: Debug validation check
+  ansible.builtin.debug:
+    var: validation_status
+    
+- name: Enable service
+  ansible.builtin.service:
+    name: libvirtd
+    enabled: true
+    state: started
+

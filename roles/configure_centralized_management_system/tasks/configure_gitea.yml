@@ -1,0 +1,262 @@
+---
+# This task configures gitea
+- name: Set binary extensions
+  ansible.builtin.set_fact:
+    binary_extensions: "{{ binary_extensions | default(['exe', 'bin', 'dll', 'so', 'gz', 'tar']) }}"
+
+- name: Create initial gitea user
+  ansible.builtin.shell: 
+    cmd: podman exec -it gitea su git -c "/app/gitea/gitea admin user create --username {{ gitea_admin_user | default('gitea') }} --password '{{ gitea_admin_password }}' --email '{{ gitea_admin_user }}@no-reply.com' --admin"
+  register: gitea_user_create
+  changed_when:
+  - "'created' in gitea_user_create.stdout"
+  failed_when:
+  - "'created' not in gitea_user_create.stdout"
+  - "'already exists' not in gitea_user_create.stdout"
+
+- name: Create a directory for admin repos
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/{{ gitea_admin_user }}/repos"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: wheel
+    mode: '0755'
+
+- name: Set admin repo home in ansible variable
+  ansible.builtin.set_Fact:
+    admin_repos_home: "/home/{{ ansible_user }}/{{ gitea_admin_user }}/repos"
+
+- name: Create admin repos
+  when: gitea_admin_repos_template is defined
+  block:
+  - name: Find template files
+    delegate_to: localhost
+    become: false
+    ansible.builtin.find:
+      paths: "{{ gitea_admin_repos_template }}"
+      patterns: "*"
+      recurse: yes
+      hidden: true
+      file_type: file
+    register: _admin_repo_templates
+  - name: Crop template file paths
+    ansible.builtin.set_fact:
+      _admin_repo_templates_crop: "{{ _admin_repo_templates.files | map(attribute='path') | map('regex_replace', '^' + gitea_admin_repos_template + '/?', '') | list }}"
+  - name: Debug admin repo templates crop
+    ansible.builtin.debug:
+      var: _admin_repo_templates_crop
+  - name: Separate non binary files
+    ansible.builtin.set_fact:
+      _admin_repo_templates_crop_nonbin: "{{ _admin_repo_templates_crop | reject('search', '\\.(' + binary_extensions | join('|') + ')$') | list }}"  
+  - name: Debug _admin_repo_templates_crop_nonbin
+    ansible.builtin.debug:
+      var: _admin_repo_templates_crop_nonbin
+  - name: Extract template directories
+    ansible.builtin.set_fact:
+      _admin_template_directories: "{{ _admin_repo_templates_crop | map('dirname') | unique | list }}"
+  - name: Debug admin template directories
+    ansible.builtin.debug:
+      var: _admin_template_directories
+  - name: Extract admin repo names
+    ansible.builtin.set_fact:
+      admin_repo_names: "{{ _admin_template_directories | map('split', '/') | map('first') | unique | list }}"
+  - name: Debug admin repo names
+    ansible.builtin.debug:
+      var: admin_repo_names
+  - name: Create directories for admin repos
+    ansible.builtin.file:
+      state: directory
+      path: "{{ admin_repos_home }}/{{ item }}"
+    loop: "{{ _admin_template_directories }}"
+  - name: Create local git repos
+    ansible.builtin.shell: |
+      cd "{{ admin_repos_home }}/{{ item }}"
+      if [ ! -d .git ]; then
+        git init
+        git checkout -b main
+        git config user.name "{{ gitea_admin_user }}"
+        git config user.email "{{ gitea_admin_user}}@no-reply.com"
+      else
+        git checkout main || git checkout -b main
+        git config user.name "{{ gitea_admin_user }}"
+        git config user.email "{{ gitea_admin_user}}@no-reply.com"
+        if git remote | grep -q origin; then
+          git fetch origin
+          if git rev-parse --verify origin/main > /dev/null 2>&1; then
+            git reset --hard origin/main
+          else
+            echo "origin/main does not exist"
+          fi
+        else
+          echo "Remote origin is not configured"
+        fi
+      fi
+    loop: "{{ admin_repo_names }}"
+  - name: Copy template non binary files to admin repos
+    ansible.builtin.template:
+      src: "{{ gitea_admin_repos_template }}/{{ item }}"
+      dest: "{{ admin_repos_home }}/{{ item }}"
+    loop: "{{ _admin_repo_templates_crop_nonbin }}"
+  - name: Create repos in gitea
+    ansible.builtin.uri:
+      url: "http://{{ ansible_host }}:{{ gitea_port | default('3030') }}/api/v1/admin/users/{{ gitea_admin_user }}/repos"
+      validate_certs: false
+      user: "{{ gitea_admin_user }}"
+      password: "{{ gitea_admin_password }}"
+      force_basic_auth: true
+      body_format: json
+      method: POST
+      body:
+        name: "{{ item }}"
+        private: true
+      status_code:
+      - 201
+      - 409
+    loop: "{{ admin_repo_names }}"
+  - name: Commit repositories
+    ignore_errors: true
+    ansible.builtin.shell: |
+      cd {{ admin_repos_home }}/{{ item }}
+      git checkout -b main
+      git add .
+      git commit -m "Initial Commit"
+      git remote add origin http://{{ gitea_admin_user }}:{{ gitea_admin_password }}@{{ ansible_host }}:{{ gitea_port | default('3030')}}/{{ gitea_admin_user }}/{{ item }}.git
+    loop: "{{ admin_repo_names }}"
+  - name: Push
+    ignore_errors: true
+    ansible.builtin.shell: |
+      cd {{ admin_repos_home }}/{{ item }}
+      git checkout -b main
+      git push -u origin main
+    loop: "{{ admin_repo_names }}"
+
+- name: Create directory for user repos
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/{{ gitea_user }}/repos"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: wheel
+    mode: '0755'
+  register: 
+
+- name: Set in variable
+  ansible.builtin.set_fact:
+    user_repos_home: "/home/{{ ansible_user }}/{{ gitea_user }}/repos"
+
+- name: Create gitea user
+  ansible.builtin.shell:
+    cmd: podman exec -it gitea su git -c "/app/gitea/gitea admin user create --username {{ gitea_user }} --password '{{ gitea_user_password }}' --email '{{ gitea_user }}@no-reply.com' --must-change-password=false"
+  register: user_create
+  changed_when:
+  - "'created' in user_create.stdout"
+  failed_when:
+  - "'created' not in user_create.stdout"
+  - "'already exists' not in user_create.stdout"
+
+- name: Create repos
+  when: gitea_user_repos_template is defined
+  block:
+  - name: Find template files
+    delegate_to: localhost
+    become: false
+    ansible.builtin.find:
+      paths: "{{ gitea_user_repos_template }}"
+      patterns: "*"
+      recurse: yes
+      hidden: true
+      file_type: file
+    register: _template_files
+  - name: Crop template file paths
+    ansible.builtin.set_fact:
+      _template_files_crop: "{{ _template_files.files | map(attribute='path') | map('regex_replace', '^' + gitea_user_repos_template + '/?', '') | list }}"
+  - name: Debug cropped template file paths
+    ansible.builtin.debug:
+      var: _template_files_crop
+  - name: Separate non binary files
+    ansible.builtin.set_fact:
+      _template_files_crop_nonbin: "{{ _template_files_crop | reject('search', '\\.(' + binary_extensions | join('|') + ')$') | list }}"
+  - name: Debug template non bin files
+    ansible.builtin.debug:
+      var: _template_files_crop_nonbin
+  - name: Extract template directories
+    ansible.builtin.set_fact:
+      _template_directories: "{{ _template_files_crop | map('dirname') | unique | list }}"
+  - name: Debug template directories
+    ansible.builtin.debug:
+      var: _template_directories
+  - name: Extract repo name
+    ansible.builtin.set_fact:
+      repo_names: "{{ _template_directories | map('split', '/') | map('first') | unique | list }}"
+  - name: Debug repo names
+    ansible.builtin.debug:
+      var: repo_names
+  - name: Create directories for user repos
+    ansible.builtin.file:
+      state: directory
+      path: "{{ user_repos_home }}/{{ item }}"
+    loop: "{{ _template_directories }}"
+  - name: Create local git repos
+    ansible.builtin.shell: |
+      cd {{ user_repos_home }}/{{ item }}
+      if [ ! -d .git ]; then
+        git init
+        git checkout -b main
+        git config user.name "{{ gitea_user }}"
+        git config user.email "{{ gitea_user }}@no-reply.com"
+      else
+        git checkout main || git checkout -b main
+        git config user.name "{{ gitea_user }}" 
+        git config user.email "{{ gitea_user }}@no-reply.com"
+        if git remote | grep -q origin; then
+          git fetch origin
+          if git rev-parse --verify origin/main > /dev/null 2>&1; then
+            git reset --hard origin/main
+          else
+            echo "origin/main does not exist"
+          fi  
+        else
+          echo "Remote origin is not configured"
+        fi
+      fi
+    loop: "{{ repo_names }}"
+  - name: Copy non binary template files to repo
+    ansible.builtin.template:
+      src: "{{ gitea_user_repos_template }}/{{ item }}"
+      dest: "{{ user_repos_home }}/{{ item }}"
+    loop: "{{ _template_files_crop_nonbin }}"
+  - name: Create repos in gitea
+    ansible.builtin.uri:
+      url: "http://{{ ansible_host }}:{{ gitea_port | default('3030') }}/api/v1/admin/users/{{ gitea_user }}/repos"
+      validate_certs: false
+      user: "{{ gitea_admin_user }}"
+      password: "{{ gitea_admin_password }}"
+      force_basic_auth: true
+      body_format: json
+      method: POST
+      body:
+        name: "{{ item }}"
+        private: true
+      status_code:
+      - 201
+      - 409
+    loop: "{{ repo_names }}"
+  - name: Commit repositories
+    ignore_errors: true
+    ansible.builtin.shell: |
+      cd {{ user_repos_home }}/{{ item }}
+      git checkout -b main
+      git add .
+      git commit -m "Initial commit"
+      git remote add origin http://{{ gitea_user }}:{{ gitea_user_password }}@{{ ansible_host }}:{{ gitea_port | default('3030')}}/{{ gitea_user }}/{{ item }}.git
+    loop: "{{ repo_names }}"
+  - name: Push repositories
+    ignore_errors: true
+    ansible.builtin.shell: |
+      cd {{ user_repos_home }}/{{ item }}
+      git checkout -b main
+      git push -u origin main
+    loop: "{{ repo_names }}"
+  #- name: Configure webhooks for repos
+  #  when: gitea_webhook_target is defined
+  #  ansible.builtin.include_tasks: config_git_hooks.yml
+  #  loop: "{{ repo_names }}"

@@ -1,0 +1,33 @@
+---
+# Example playbook to prepare system for ssc600 sw
+- name: Example playbook for prepare system for ssc600 sw
+  hosts: virtualization_hosts
+  gather_facts: yes
+
+  tasks:
+  - name: Import role
+    ansible.builtin.import_role:
+      name: rprakashg.vpac.prepare_system_for_ssc600sw
+    vars:
+      rt_config:
+        non_rt_cores_cat: f
+        non_rt_cache_cat: "0x1ff"
+        rt_cache: "0xe00"
+        rt_cores: 13-14
+        cpumask: 400
+      networking:
+        stationbus:
+          nic: ens3f3
+          ip4: "172.16.20.1/24"
+          gw4: 172.16.20.1
+          dns4: 8.8.8.8
+        processbus:
+          nic: "ens3f0"
+      ssc600_ptp:
+        status_dir: /home/libvirt-local/ptp/
+        socket: /var/run/timemaster/ptp4l.0.socket
+        ptp4l_options: "-l 5 -A --clientOnly=1 --step_threshold=0.1"
+      ssc600_bundle:
+        file: SSC600_SW_KVM-1.5.1.cab
+        path: /home/software
+        extracted_path: /home/software/abb

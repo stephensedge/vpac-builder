@@ -1,0 +1,23 @@
+---
+# This install additional tools on windows machine
+- name: Install security updates
+  ansible.windows.win_updates:
+    category_names:
+    - SecurityUpdates
+    state: installed
+
+- name: Install chocolatey
+  ansible.windows.win_chocolatey:
+    name: chocolatey
+    state: present 
+
+- name: Install packages
+  ansible.windows.win_chocolatey:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+    - powershell-core
+
+- name: Disable windows defender real-time protection
+  ansible.windows.win_shell: Set-MpPreference -DisableRealtimeMonitoring $true

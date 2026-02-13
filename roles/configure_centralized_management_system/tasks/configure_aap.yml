@@ -1,0 +1,151 @@
+---
+# This task configures ansible automation platform
+- name: Create a temp directory to store AAP config
+  delegate_to: localhost
+  ansible.builtin.tempfile:
+    state: directory
+  register: tempdir
+
+- name: Set tempdir path in fact
+  delegate_to: localhost
+  ansible.builtin.set_fact:
+    config_dir: "{{ tempdir.path }}"
+
+- name: Generate AAP config
+  delegate_to: localhost
+  ansible.builtin.template:
+    src: "{{ aap_config_template }}"
+    dest: "{{ config_dir }}/aap_config.yml" 
+
+- name: Load variables
+  ansible.builtin.include_vars: "{{ config_dir }}/aap_config.yml"
+
+# Configure execution environments
+- name: Configure execution environments
+  when: controller_execution_environments is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_execution_environments
+
+# Configure credential types
+- name: Configure credential types
+  when: controller_credential_types is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_credential_types
+
+# Configure Organizations
+- name: Configure Organizations
+  when: aap_organizations is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_organizations
+
+# Configure users
+- name: Configure users
+  when: aap_user_accounts is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_users
+
+# Configure roles
+- name: Configure roles
+  when: controller_roles is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_roles
+
+# Configure Inventories
+- name: Configure Inventories
+  when: controller_inventories is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_inventories
+
+# Configure Credentials
+- name: Configure Credentials
+  when: controller_credentials is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_credentials
+
+# Configure Projects
+- name: Configure projects 
+  when: controller_projects is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_projects
+  vars:
+    update_project: true
+
+# Configure Hosts
+- name: Configure hosts
+  when: controller_hosts is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_hosts
+
+# Configure groups
+- name: Configure groups
+  when: controller_groups is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_host_groups
+
+# Configure Job Templates
+- name: Configure job Templates
+  when: controller_templates is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_job_templates
+
+# Configure Workflows
+- name: Configure workflows
+  when: controller_workflows is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_workflow_job_templates
+
+# Configure Event Driven Ansible
+- name: Create Personal Access Token
+  ansible.builtin.shell: |
+    set -x
+    hostname
+    ANSIBLE_CONTROLLER_URL="https://{{ controller_hostname }}"
+    USERNAME="{{ aap_username }}"
+    PASSWORD="{{ aap_password }}"
+
+    cat <<EOF > /tmp/token_request.json
+    {
+      "name": "Admin token",
+      "scope": "write"
+    }
+    EOF
+
+    # Request token
+    response=$(curl -k -X POST -H "Content-Type: application/json" -u "${USERNAME}:${PASSWORD}" -d "@/tmp/token_request.json" "${ANSIBLE_CONTROLLER_URL}/api/v2/tokens/")
+    token=$(echo "$response" | grep -o '"token": *"[^"]*"' | awk -F'"' '{print $4}')
+
+    echo $token
+  register: token_output
+  delegate_to: localhost
+
+- name: Set token in variable
+  ansible.builtin.set_fact:
+    _auth_token: "{{ token_output.stdout_lines[-1] }}"
+
+# Configure EDA Credentials
+- name: Configure EDA Credentials
+  when: eda_credentials is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.eda_credentials
+
+# Configure EDA projects
+- name: Configure EDA projects
+  when: eda_projects is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.eda_projects
+
+# Configure EDA tokens
+- name: Configure EDA tokens
+  when: eda_controller_tokens is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.eda_controller_tokens
+  vars:
+    eda_controller_tokens:
+    - name: Controller token
+      token: "{{ _auth_token }}"
+
+#Configure EDA Rulebook activations
+- name: Configure EDA rulebook activations
+  when: eda_rulebook_activations is defined
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.eda_rulebook_activations

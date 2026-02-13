@@ -1,0 +1,11 @@
+---
+# Example playbook that demonstrates how to setup the imagebuilder host using
+# setup_imagebuilder role
+- name: This example playbook shows how to setup imagebuilder
+  hosts: imagebuilder
+  gather_facts: yes
+
+  tasks:
+  - name: Import role
+    ansible.builtin.import_role:
+      name: rprakashg.vpac.setup_imagebuilder

@@ -1,0 +1,32 @@
+---
+# tasks file for ./roles/prepare_system_for_rt
+- name: Check if system is already registered
+  become: yes
+  ansible.builtin.stat:
+    path: /etc/insights-client/.registered
+  register: registered
+  
+- name: Register system if not already registered
+  when: not registered.stat.exists
+  ansible.builtin.include_role: 
+    name: rprakashg.vpac.register_system
+
+- name: Configure system using linux system roles
+  become: yes
+  ansible.builtin.import_tasks: configure_system.yml
+  
+- name: Setting up intel cache allocation technology
+  become: yes
+  ansible.builtin.import_tasks: setup_intelcat.yml
+
+- name: Installing and configuring RT Kernel
+  become: yes
+  ansible.builtin.import_tasks: install_rt_kernel.yml
+
+- name: Enabling virtualization
+  become: yes
+  ansible.builtin.import_tasks: enable-virtualization.yml
+
+- name: Configuring performance and power profiles with tuned
+  become: yes
+  ansible.builtin.import_tasks: setup_tuned.yml

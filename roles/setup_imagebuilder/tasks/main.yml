@@ -1,0 +1,5 @@
+---
+# tasks file for ./roles/setup_imagebuilder
+- name: Setup image builder 
+  become: yes
+  ansible.builtin.import_tasks: setup.yml

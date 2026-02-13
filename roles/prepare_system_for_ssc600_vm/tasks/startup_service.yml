@@ -1,0 +1,29 @@
+---
+# This task setup up a systemd oneshot service that executes a script
+# which setups up L3 partitioning of the cache and configures process bus
+# networking 
+# Reused from https://github.com/kwozyman/vpac
+- name: Deploy SSC-600 VM startup script
+  ansible.builtin.template:
+    src: ssc600-setup.sh
+    dest: /usr/sbin/ssc600-setup.sh
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=rx
+  register: ssc600_setup_script
+
+- name: Deploy SSC-600 VM startup service
+  ansible.builtin.template:
+    src: ssc600-startup.service.j2
+    dest: /etc/systemd/system/ssc600-startup.service
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  register: ssc600_startup_service
+
+- name: Enable service
+  ansible.builtin.systemd:
+    name: ssc600-startup
+    enabled: true
+    daemon_reload: true
+  when: ssc600_setup_script.changed or ssc600_startup_service.changed

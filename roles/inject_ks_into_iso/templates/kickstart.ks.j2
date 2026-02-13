@@ -1,0 +1,28 @@
+{% if builder_kickstart_pre is defined and builder_kickstart_pre | length > 0 %}
+%pre --log=/var/log/anaconda/pre-install.log --erroronfail --interpreter=/bin/bash
+{{ builder_kickstart_pre }}
+%end
+{% endif %}
+
+
+{% if builder_kickstart_options | length > 0 %}
+{% for option in builder_kickstart_options %}
+{{ option }}
+{% endfor %}
+{% endif %}
+
+# setting root password
+rootpw --iscrypted {{ root_password | password_hash('sha512')}}
+
+{% if builder_kickstart_post is defined and builder_kickstart_post | length > 0 %}
+%post --log=/var/log/anaconda/post-install.log --erroronfail
+{% for post in builder_kickstart_post %}
+{% if post != "" %}
+{{ post }}
+{% endif %}
+{% endfor %}
+echo "anaconda post-install steps completed successfully"
+%end
+{% endif %}
+
+

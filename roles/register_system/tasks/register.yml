@@ -1,0 +1,28 @@
+- name: Install packages
+  ansible.builtin.dnf:
+    state: latest
+    name: rhc
+
+- name: Connect system to redhat
+  ansible.builtin.shell: |
+    rhc connect --username={{ rh_user }} --password={{ rh_user_password }}
+
+- name: Register the system
+  ansible.builtin.shell: |
+    subscription-manager register --username={{ rh_user }} --password={{ rh_user_password }} --force
+    subscription-manager role --set="Red Hat Enterprise Linux Server"
+    subscription-manager service-level --set="Self-Support"
+    subscription-manager usage --set="Development/Test"
+    subscription-manager attach
+    subscription-manager config --rhsm.manage_repos=1
+
+- name: Update packages
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    update_cache: yes
+  register: dnf_update_result
+
+- name: Display results
+  ansible.builtin.debug:
+    var: dnf_update_result

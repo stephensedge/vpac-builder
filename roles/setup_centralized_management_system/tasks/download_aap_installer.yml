@@ -1,0 +1,60 @@
+# This task generates an access token using redhat offline token and uses the access
+# token to download aap installer bundle
+---
+- name: Start
+  ansible.builtin.debug:
+    msg: "Starting download of AAP installer bundle"
+
+- name: Make a temp dir to download aap containerized installer bundle
+  ansible.builtin.tempfile:
+    suffix: "downloads"
+    state: directory
+  register: downloaddir_result
+
+- name: Set tempdir in path
+  ansible.builtin.set_fact:
+    download_dir: "{{ downloaddir_result.path }}"
+
+- name: Debug download dir
+  ansible.builtin.debug:
+    msg: "Temporary download directory: {{ download_dir }}"
+
+- name: Generate an access token
+  ansible.builtin.uri:
+    url: "{{ access_token_endpoint }}"
+    method: POST
+    body_format: form-urlencoded
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body:
+      grant_type: "{{ grant_type }}"
+      client_id: "{{ client_id }}"
+      refresh_token: "{{ rh_offline_token }}"
+  register: token_response
+  until: token_response is not failed
+  retries: "{{ retries }}"
+  delay: "{{ delay }}"
+
+- name: Debug token response
+  ansible.builtin.debug:
+    var: token_response
+
+- name: Download the AAP installer
+  ansible.builtin.get_url:
+    url: "https://api.access.redhat.com/management/v1/images/{{ aap_sha }}/download"
+    headers:
+      accept: application/json
+      Authorization: "Bearer {{ token_response.json.access_token }}"
+    dest: "{{ download_dir }}/bundle.tar.gz" 
+    checksum: "sha256: {{ aap_sha }}"
+  register: download_aap_bundle
+  until: download_aap_bundle is not failed
+  retries: "{{ retries }}"
+  delay: "{{ delay }}"
+
+- name: Extract the tar file
+  ansible.builtin.unarchive:
+    src: "{{ download_dir }}/bundle.tar.gz"
+    dest: "{{ install_dir }}"
+    remote_src: true
+    extra_opts: ['--strip-components=1', '--show-stored-names']

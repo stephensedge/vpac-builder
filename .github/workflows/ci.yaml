@@ -1,0 +1,70 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.access.redhat.com/ubi9/ubi
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: Access a subscription via activation key
+        env:
+          SMDEV_CONTAINER_OFF: 1
+          orgid: ${{ secrets.ORGID }}
+          activation_key: ${{ secrets.ACTIVATION_KEY }}
+        run: subscription-manager register --org=$orgid --activationkey=$activation_key
+
+      - name: Install dependencies
+        run: |
+          dnf install -y ansible-core 
+      - name: Install epel
+        run: |
+          dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+      - name: Install extra packages
+        run: |    
+          dnf install -y ansible-lint yamllint
+      - name: Run ansible-lint
+        run: ansible-lint ansible_collections/rprakashg/vpac
+        continue-on-error: true
+      - name: Run yamllint
+        run: yamllint --strict .
+        continue-on-error: true
+      - name: Clean up the subscription
+        env:
+          SMDEV_CONTAINER_OFF: 1
+        run: subscription-manager unregister
+
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.access.redhat.com/ubi9/ubi
+      options: --privileged
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Access a subscription via activation key
+        env:
+          SMDEV_CONTAINER_OFF: 1
+          orgid: ${{ secrets.ORGID }}
+          activation_key: ${{ secrets.ACTIVATION_KEY }}
+        run: subscription-manager register --org=$orgid --activationkey=$activation_key
+
+      - name: Install ansible core
+        run: |
+          dnf install -y ansible-core python3
+    
+      - name: Install required ansible collections
+        run: |
+          ansible-galaxy collection install amazon.aws
+
+      - name: Clean up the subscription
+        env:
+          SMDEV_CONTAINER_OFF: 1
+        run: subscription-manager unregister

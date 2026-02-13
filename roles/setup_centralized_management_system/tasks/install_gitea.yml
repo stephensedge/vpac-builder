@@ -1,0 +1,103 @@
+---
+# This tasks installs gitea on podman
+- name: Install git
+  ansible.builtin.dnf:
+    state: latest
+    name: git
+
+- name: Create /usr/share/gitea/config dir
+  ansible.builtin.file:
+    path: /usr/share/gitea/config
+    state: directory
+    mode: '0755'
+
+- name: Create podman volume to store gitea data
+  ansible.builtin.template:
+    src: gitea.volume.j2
+    dest: /etc/containers/systemd/gitea.volume
+
+- name: Create a systemd target unit to group gitea services
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/gitea.target"
+    content: |
+      [Unit]
+      Description=Gitea services group
+
+      Wants=gitea-init.service
+      Wants=gitea.service
+
+      After=network-online.target
+      After=gitea-init.service
+      After=gitea.service
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0755'
+
+- name: Create podman quadlet for gitea
+  ansible.builtin.template:
+    src: gitea.container.j2
+    dest: /etc/containers/systemd/gitea.container
+
+- name: Generate init script for gitea
+  ansible.builtin.copy:
+    dest: /usr/share/gitea/config/init.sh
+    content: |
+      #!/bin/sh
+      set -e 
+
+      mkdir -p /data/gitea/conf
+      mkdir -p /data/gitea/repositories
+      mkdir -p /data/ssh
+
+      APPINI=/data/gitea/conf/app.ini
+
+      if [ -f "$APPINI" ]; then
+        echo "[init] app.ini already exists, deleting..."
+        rm "$APPINI"
+      fi
+
+      cat <<EOF > "$APPINI"
+      {{ lookup('template', 'app.ini.j2') }}
+      EOF
+
+      echo "[init] app.ini generated"
+
+      chown -R 1000:1000 /data
+      echo "[init] Updated permissions"
+    mode: '0755'
+
+- name: Generate init gitea quadlet
+  ansible.builtin.template:
+    src: gitea-init.container.j2
+    dest: /etc/containers/systemd/gitea-init.container
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Check if firewalld is installed
+  shell: rpm -q firewalld
+  register: firewalld_installed
+  ignore_errors: yes
+
+- name: Open TCP ports for gitea
+  when: firewalld_installed.rc == 0
+  firewalld:
+    port: "{{ gitea_port | default('3030') }}/tcp"
+    permanent: yes
+    state: enabled
+    zone: public
+
+- name: Reload firewall
+  when: firewalld_installed.rc == 0
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded
+
+- name: Enable gitea
+  ansible.builtin.systemd:
+    name: gitea.target
+    state: started
+    enabled: yes
+...

@@ -1,0 +1,32 @@
+---
+# tasks file for ./roles/install_aap
+- name: Preflight steps
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Install gitea
+  become: true
+  when: install_gitea | default(true)
+  ansible.builtin.import_tasks: install_gitea.yml
+
+- name: Install influxdb
+  become: true
+  when: install_influxdb | default(true)
+  ansible.builtin.import_tasks: install_influxdb.yml
+
+- name: Install loki
+  become: true
+  when: install_loki | default(true)
+  ansible.builtin.import_tasks: install_loki.yml
+
+- name: Install grafana
+  become: true
+  when: install_grafana | default(true)
+  ansible.builtin.import_tasks: install_grafana.yml
+
+- name: Download installer bundle
+  when: install_aap | default(true)
+  ansible.builtin.import_tasks: download_aap_installer.yml
+
+- name: Install AAP
+  when: install_aap | default(true)
+  ansible.builtin.import_tasks: install_aap.yml

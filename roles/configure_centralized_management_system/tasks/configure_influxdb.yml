@@ -1,0 +1,25 @@
+---
+- name: Check the setup status
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influxdb_port | default('8086') }}/api/v2/setup"
+    validate_certs: false
+    body_format: json
+    method: GET
+  register: get_setup_status
+  
+- name: Perform initial setup
+  when: get_setup_status.json.allowed
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influxdb_port | default('8086') }}/api/v2/setup"
+    validate_certs: false
+    body_format: json
+    method: POST
+    body:
+      username: "{{ influxdb_user }}"
+      password: "{{ influxdb_password }}"
+      org: "{{ influxdb_org }}"
+      bucket: "{{ influxdb_bucket }}" 
+      retentionPeriodSeconds: "{{ influxdb_retentionperiod }}"
+    status_code:
+    - 201
+    - 409

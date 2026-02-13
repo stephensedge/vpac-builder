@@ -1,0 +1,30 @@
+---
+# This task sets up and configures tuned
+# Reused from https://github.com/kwozyman/vpac
+- name: Setup tuned
+  ansible.builtin.include_role:
+    name: linux-system-roles.tuned
+  vars:
+    profile: "{{ tuned.profile }}"
+
+- name: Setup isolated cores
+  ansible.builtin.template:
+    src: realtime-variables.conf.j2
+    dest: /etc/tuned/realtime-variables.conf
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: Setup isolated cores
+  ansible.builtin.template:
+    src: realtime-variables.conf.j2
+    dest: /etc/tuned/realtime-virtual-host-variables.conf
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: Disable irqbalance
+  ansible.builtin.service:
+    name: irqbalance
+    enabled: false
+    state: stopped

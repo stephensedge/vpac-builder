@@ -1,0 +1,45 @@
+---
+# This task generates inventory file and extra vars file and runs
+# the containerized installer to install AAP
+- name: Rename the current inventory file
+  ansible.builtin.shell: |
+    mv {{ install_dir }}/inventory {{ install_dir }}/inventory.bak
+
+- name: Generate inventory file
+  ansible.builtin.template:
+    src: inventory.j2
+    dest: "{{ install_dir }}/inventory"
+
+- name: Generate vars file
+  ansible.builtin.template:
+    src: "vars.yml.j2"
+    dest: "{{ install_dir }}/vars.yml"
+
+- name: Install awx
+  ansible.builtin.shell: |
+    ansible-galaxy collection install awx.awx --upgrade
+
+- name: Run containerized installer
+  ansible.builtin.shell: |
+    cd {{ install_dir }}
+    ansible-playbook -i inventory --extra-vars "@vars.yml" ansible.containerized_installer.install > /home/{{ ansible_user }}/aap_install.log 2>&1
+
+- name: Firewalld changes
+  block:
+  - name: Check if firewalld is installed
+    ansible.builtin.shell: |
+      rpm -q firewalld
+    ignore_errors: yes
+    register: firewalld_check
+  - name: Open TCP ports for EDA
+    when: firewalld_check.rc == 0
+    firewalld:
+      port: 
+      permanent: yes
+      state: enabled
+      zone: public
+  - name: Reload firewalld
+    when: firewalld_check.rc == 0
+    ansible.builtin.systemd:
+      name: firewalld
+      state: reloaded

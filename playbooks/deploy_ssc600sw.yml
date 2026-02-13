@@ -1,0 +1,25 @@
+---
+# Sample playbook for deploying SSC600 SW VM
+- name: Example playbook for deploying ssc600 SW VM
+  hosts: virtualization_hosts
+  gather_facts: yes
+
+  tasks:
+  - name: Execute role
+    ansible.builtin.import_role:
+      name: rprakashg.vpac.deploy_ssc600sw.yml
+    vars:
+      ssc600_vm:
+        name: ssc600-1
+        path: /vms/ssc600-1
+        core0: 15
+        core1: 14
+        core2: 13
+        core3: 12
+        core_qemu: 16-17
+        pb_nic: "ens3f0"
+      ptp:
+        status_dir: /home/libvirt-local/ptp/
+      ssc600_bundle:
+        path: /home/software
+        extracted_path: /home/software/abb

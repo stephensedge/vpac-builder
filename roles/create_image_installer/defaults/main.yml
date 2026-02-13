@@ -1,0 +1,47 @@
+---
+# defaults file for ./roles/build_iso
+retries: 100
+delay: 20
+
+skip_blueprint_creation: false
+
+# blueprint definition
+builder_blueprint_name: vpac-rhel9-base
+builder_blueprint_description: "Base RHEL 9.6 for image for building grid platforms"
+builder_blueprint_distro: "rhel-9"
+builder_compose_pkgs:
+- ansible-core
+- wget
+- firewalld
+- rhel-system-roles
+- cockpit
+- cockpit-machines
+- cockpit-podman
+- cloud-init
+- cloud-utils-growpart
+- unzip
+- bzip2
+- zstd
+- mkisofs
+- qemu-kvm
+- libvirt
+- virt-install
+- virt-viewer
+- swtpm
+- swtpm-tools
+- dosfstools
+- edk2-ovmf #uefi firmware for windows 11 install
+- kernel-rt
+- kernel-rt-kvm
+- tuned-profiles-nfv-host
+- realtime-tests
+- dnf-plugins-core
+- python3-dnf-plugin-versionlock #versionlock 
+builder_compose_customizations:
+  services:
+    enabled: ["cockpit.socket", "firewalld"]
+  firewall:
+    services:
+      enabled: ["http", "https", "ssh", "cockpit"]
+      disabled: ["telnet"]
+    ports: ["9090:tcp", "22:tcp"]

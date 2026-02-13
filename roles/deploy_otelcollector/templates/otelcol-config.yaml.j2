@@ -1,0 +1,106 @@
+receivers:
+    otlp:
+        protocols:
+            grpc:
+            http:
+
+    hostmetrics:
+        collection_interval: 10s
+        scrapers:
+            cpu:
+                metrics:
+                    system.cpu.logical.count:
+                        enabled: true
+                    system.cpu.physical.count:
+                        enabled: true
+                    system.cpu.frequency:
+                        enabled: true
+                    system.cpu.utilization:
+                        enabled: true
+            load: { }
+            memory:
+                metrics:
+                    system.linux.memory.available:
+                        enabled: true
+                    system.memory.limit:
+                        enabled: true
+                    system.memory.utilization:
+                        enabled: true
+            disk: { }
+            filesystem:
+                metrics:
+                    system.filesystem.utilization:
+                        enabled: true
+            paging:
+                metrics:
+                    system.paging.utilization:
+                        enabled: true
+                    system.paging.usage:
+                        enabled: true
+            network: { }
+            process:
+                mute_process_io_error: true
+                mute_process_exe_error: true
+                mute_process_user_error: true
+                metrics:
+                    process.cpu.utilization:
+                        enabled: true
+                    process.memory.utilization:
+                        enabled: true
+                    process.disk.io:
+                        enabled: true
+                    process.disk.operations:
+                        enabled: true
+                    process.threads:
+                        enabled: true
+                    process.paging.faults:
+                        enabled: true
+
+    journald:
+        directory: /run/log/journal
+        units:
+        - sshd.service
+        - systemd-logind.service
+        - network.service
+        - NetworkManager.service
+        - firewalld.service
+        - systemd-resolved.service
+
+        priority: info
+
+processors:
+    batch:
+        send_batch_size: 10000
+        send_batch_max_size: 11000
+        timeout: 10s
+
+    resourcedetection/system:
+        detectors: ["system"]
+        system:
+            hostname_sources: ["os"]
+
+exporters:
+    loki:
+        endpoint: "{{ loki.endpoint }}/loki/api/v1/push"
+        tls:
+            insecure: true
+
+    influxdb:
+        endpoint: "{{ influxdb.endpoint }}"
+        org: "{{ influxdb.org }}"
+        bucket: "{{ influxdb.bucket }}"
+        token: "{{ influxdb_token }}"
+        metrics_schema: telegraf-prometheus-v2
+        timeout: 10s
+
+service:
+    pipelines:
+        logs:
+            receivers: [otlp,journald]
+            processors: [resourcedetection/system]
+            exporters: [loki]
+
+        metrics:
+            receivers: [hostmetrics]
+            processors: [resourcedetection/system]
+            exporters: [influxdb]

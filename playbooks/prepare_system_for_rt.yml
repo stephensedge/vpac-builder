@@ -1,0 +1,14 @@
+---
+# Example playbook for configuring virtualization hosts for realtime workloads
+- name: Example playbook for configuring virtualization hosts for realtime workloads
+  hosts: virtualization_hosts
+  gather_facts: yes
+
+  tasks:
+  - name: Import role
+    ansible.builtin.import_role:
+      name: rprakashg.vpac.prepare_system_for_rt
+    vars:
+      tuned:
+        profile: realtime-virtual-host
+        rt_cores: 11-21

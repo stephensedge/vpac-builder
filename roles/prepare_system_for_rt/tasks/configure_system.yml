@@ -1,0 +1,13 @@
+---
+# tasks file for ./roles/configure_system (Re-used from github.com/kwozyman/vpac)
+- name: Configure bootloader
+  ansible.builtin.import_role:
+    name: linux-system-roles.bootloader    
+
+- name: Configure kernel settings
+  ansible.builtin.import_role:
+    name: linux-system-roles.kernel_settings
+
+- name: Configure timesync
+  ansible.builtin.import_role:
+    name: linux-system-roles.timesync

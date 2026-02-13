@@ -1,0 +1,26 @@
+---
+# defaults file for ./roles/deploy_vm
+
+vm_name: "demovm"
+vm_state: "running" # running | shutoff | absent
+
+# Compute
+vm_memory_mb: 2048
+vm_vcpus: 2
+
+# Storage
+libvirt_images_dir: /var/lib/libvirt/images
+vm_disk_path: "{{ libvirt_images_dir }}/{{ vm_name }}"
+vm_primary_disk: "{{ vm_name }}.qcow2"
+
+vm_disk_size: 20G
+
+# Optional devices
+# devices:
+# - name: installation iso
+#   type: cdrom
+#   filename: ""
+devices: []
+
+# Networking
+vm_network: "default" # default libvirt network

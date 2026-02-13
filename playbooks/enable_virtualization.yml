@@ -1,0 +1,11 @@
+---
+# This example playbook enables virtualization on target RHEL host
+- name: Enable virtualization playbook
+  hosts: virtualization_hosts
+  gather_facts: yes
+  vars_files:
+  - vars/main.yml
+  tasks:
+  - name: Enable virtualization
+    ansible.builtin.import_role:
+      name: rprakashg.vpac.enable_virtualization

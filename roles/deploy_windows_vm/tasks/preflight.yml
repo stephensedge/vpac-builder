@@ -1,0 +1,20 @@
+---
+# preflight steps
+- name: Install packages
+  ansible.builtin.dnf:
+    state: latest
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - mkisofs
+    - mtools
+
+- name: Check windows 11 pro install iso image exists on the virtualization host
+  ansible.builtin.stat:
+    path: "{{ software_dir }}/{{ windows_iso }}"
+  register: file_stat
+
+- name: Check if file exists
+  ansible.builtin.fail:
+    msg: "Pre-requisite not met: Cannot find windows ISO on host, please dowonload and copy it to {{ software_dir }}"
+  when: not file_stat.stat.exists

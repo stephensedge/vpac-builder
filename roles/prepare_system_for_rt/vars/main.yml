@@ -1,0 +1,8 @@
+---
+# vars file for ./roles/prepare_system_for_rt
+processbus_nic: ""
+
+tuned:
+  profile: ""
+  rt_cores: ""
+  

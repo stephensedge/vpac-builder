@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend"
+  xmlns:wcm="https://schemas.microsoft.com/WMIConfig/2002/State">
+  <settings pass="offlineServicing" />
+  <settings pass="windowsPE">
+    <component name="Microsoft-Windows-Setup" processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35" language="neutral"
+               versionScope="nonSxS">
+
+      <ImageInstall>
+        <OSImage>
+          <InstallFrom>
+            <MetaData wcm:action="add">
+              <Key>/IMAGE/NAME</Key>
+              <Value>Windows {{ windows_version }} Pro</Value>
+            </MetaData>
+          </InstallFrom>
+          <InstallTo>
+            <DiskID>0</DiskID>
+            <PartitionID>1</PartitionID>
+          </InstallTo>
+          <InstallToAvailablePartition>true</InstallToAvailablePartition>
+        </OSImage>
+      </ImageInstall>
+
+      <!-- ACCPET EULA -->
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+        <FullName>{{ admin_user }}</FullName>
+        <Organization>{{ organization }}</Organization>
+        <ProductKey>
+          <WillShowUI>OnError</WillShowUI>
+          <Key>{{ windows_license_key }}</Key>
+        </ProductKey>
+      </UserData>
+
+      <UseConfigurationSet>false</UseConfigurationSet>
+
+      <!-- Disk Configuration -->
+      <DiskConfiguration>
+        <Disk wcm:action="add">
+          <DiskID>0</DiskID>
+          <WillWipeDisk>true</WillWipeDisk>
+          <CreatePartitions>
+            <CreatePartition wcm:action="add">
+              <Order>1</Order>
+              <Type>Primary</Type>
+              <Size>{{ disk_size }}</Size>
+            </CreatePartition>
+          </CreatePartitions>
+        </Disk>
+        <WillShowUI>OnError</WillShowUI>
+      </DiskConfiguration>
+
+      <!-- SKIPPING CHECKS -->
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>Order 1-6: Skip Windows 11 Hardware Requirement Checks</Description>
+          <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassTPMCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassStorageCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>4</Order>
+          <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassCPUCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>5</Order>
+          <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassRAMCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>6</Order>
+          <Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v BypassDiskCheck /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+
+    </component>
+  </settings>
+
+  <settings pass="generalize" />
+
+  <!-- SPECIALIZE PHASE -->
+  <settings pass="specialize">
+    <!-- Computer Name -->
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS">
+      <ComputerName>{{ vm_name }}</ComputerName>
+    </component>
+
+    <!-- STATIC NETWORK CONFIGURATION -->  
+    <component name="Microsoft-Windows-TCPIP"
+              processorArchitecture="amd64"
+              publicKeyToken="31bf3856ad364e35"
+              language="neutral"
+              versionScope="nonSxS">
+
+      <Interfaces>
+        <Interface wcm:action="add" wcm:keyValue="1">
+          <Identifier>Ethernet0</Identifier>
+
+          <!-- STATIC IP ADDRESS -->
+          <UnicastIpAddresses>
+            <IpAddress wcm:action="add" wcm:keyValue="1">{{ networking.ip4 }}</IpAddress>
+          </UnicastIpAddresses>
+
+          <!-- SUBNET MASK -->
+          <Ipv4SubnetMask>{{ networking.subnetmask }}</Ipv4SubnetMask>
+
+          <!-- DEFAULT GATEWAY -->
+          <Routes>
+            <Route wcm:action="add" wcm:keyValue="1">
+              <Identifier>0</Identifier>
+              <DestinationPrefix>0.0.0.0/0</DestinationPrefix>
+              <NextHop>{{ networking.gw4 }}</NextHop>
+            </Route>
+          </Routes>
+
+          <!-- DNS SERVERS -->
+          <DnsServers>
+            <DnsServer wcm:action="add" wcm:keyValue="1">8.8.8.8</DnsServer>
+            <DnsServer wcm:action="add" wcm:keyValue="2">1.1.1.1</DnsServer>
+          </DnsServers>
+          
+          <DHCPEnabled>false</DHCPEnabled>
+        </Interface>
+      </Interfaces>
+    </component>
+
+  </settings>
+
+  <settings pass="auditSystem" />
+  <settings pass="auditUser" />
+  
+  <!-- OOBE PHASE -->
+  <settings pass="oobeSystem">
+    <!-- LOCALE SETTINGS -->
+    <component name="Microsoft-Windows-International-Core"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS">
+      <InputLocale>{{ locale_settings.input }}</InputLocale>
+      <SystemLocale>{{ locale_settings.system }}</SystemLocale>
+      <UILanguage>{{ locale_settings.uilang }}</UILanguage>
+      <UserLocale>{{ locale_settings.user }}</UserLocale>
+    </component>
+
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35" language="neutral"
+               versionScope="nonSxS">
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <NetworkLocation>Work</NetworkLocation>
+        <ProtectYourPC>3</ProtectYourPC>
+        <SkipMachineOOBE>true</SkipMachineOOBE>
+        <SkipUserOOBE>true</SkipUserOOBE>
+      </OOBE>
+
+      <UserAccounts>
+        <AdministratorPassword>
+          <Value>{{ admin_user_password }}</Value>
+          <PlainText>true</PlainText>
+        </AdministratorPassword>
+      </UserAccounts>
+      
+      <!-- ADMIN PASSWORD -->
+      <AutoLogon>
+        <Password>
+          <Value>{{ admin_user_password }}</Value>
+          <PlainText>true</PlainText>
+        </Password>
+        <Enabled>true</Enabled>
+        <Username>{{ admin_user }}</Username>
+      </AutoLogon>
+
+      <!-- INSTALL VIRTIO DRIVERS, VIRTIO GUEST TOOLS, QEMU GUEST AGENT -->
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <CommandLine>E:\guest-agent\qemu-ga-x86_64.msi /quiet</CommandLine>
+          <Description>Install QEMU Guest Agent</Description>
+        </SynchronousCommand>
+        
+        <SynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <CommandLine>E:\virtio-win-guest-tools.exe /quiet</CommandLine>
+          <Description>Install VirtIO Drivers</Description>
+        </SynchronousCommand>
+
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>powershell -ExecutionPolicy Bypass -Command "Enable-PSRemoting -Force"</CommandLine>
+          <Order>3</Order>
+          <Description>Enable WinRM</Description>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+
+      <RegisteredOrganization>{{ organization }}</RegisteredOrganization>
+      <RegisteredOwner>{{ admin_user }}</RegisteredOwner>
+      <TimeZone>Pacific Standard Time</TimeZone>
+    </component>
+  </settings>
+
+</unattend>

@@ -1,0 +1,15 @@
+---
+# Example playbook showing how to create a windows 11 pro virtual machine
+- name: Create windows virtual machine
+  hosts: virtualization_hosts
+  gather_facts: yes
+  vars_files:
+  - vars/main.yml
+  tasks:
+  - name: Load secrets from ansible vault
+    ansible.builtin.include_vars:
+      file: vars/secrets.yml
+  - name: Import create windows vm role
+    ansible.builtin.import_role:
+      name: rprakashg.vpac.create_windows_vm
+    

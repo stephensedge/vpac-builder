@@ -1,0 +1,30 @@
+---
+# preflight steps
+- name: Make a directory to run AAP setup from
+  when: install_aap | default(true)
+  ansible.builtin.file:
+    state: directory
+    path: "/home/{{ ansible_user }}/aap_install"
+    mode: '0755'
+    owner: "{{ ansible_user }}"
+
+- name: Set setup dir in fact
+  when: install_aap | default(true)
+  ansible.builtin.set_fact:
+    install_dir: "/home/{{ ansible_user }}/aap_install"
+
+- name: Install required packages
+  become: yes
+  ansible.builtin.dnf:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+    - python3-pip
+    - git
+    - ansible-core
+    - podman
+    - unzip
+    - tar
+    - rsync
+    - wget

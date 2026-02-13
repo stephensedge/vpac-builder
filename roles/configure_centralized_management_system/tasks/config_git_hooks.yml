@@ -1,0 +1,62 @@
+---
+# This task setsup gitea webhooks
+- name: Setup eda web hooks from gitea repo
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ gitea_port | default('3030') }}/api/v1/repos/{{ gitea_user }}/{{ item }}/hooks"
+    method: GET 
+    user: "{{ gitea_user }}"
+    password: "{{ gitea_user_password }}"
+    force_basic_auth: true
+    return_content: yes
+  register: existinghooks
+  changed_when: false
+  delegate_to: localhost
+
+- ansible.builtin.set_fact:
+    hooksjson: "{{ existinghooks.content | from_json }}"
+  when: existinghooks.content is defined and existinghooks.content | length > 2
+
+- ansible.builtin.debug:
+    var: hooksjson
+  when: hooksjson is defined 
+
+- name: Set EDA webhook URL
+  ansible.builtin.set_fact:
+    eda_webhook_url: "http://{{ ansible_host }}:{{ eda_port | default('5000') }}"
+
+- ansible.builtin.debug:
+    msg: "EDA Webhook URL: {{ eda_webhook_url }}"
+
+- name: Setup repo webhook URL
+  ansible.builtin.set_fact:
+    gitea_webhook_url: "http://{{ ansible_host }}:{{ gitea_port | default('3030')/api/v1/repos/{{ gitea_user }}/{{ item }}/hooks }}"
+
+- name: Debug gitea webhook url
+  ansible.builtin.debug:
+    msg: "Gitea webhook URL: {{ gitea_webhook_url }}"
+
+- ansible.builtin.set_fact:
+    hookexists: true
+  when: hooksjson is defined
+
+- name: Create repo webhook
+  ansible.builtin.uri:
+    url: "{{ gitea_webhook_url }}"
+    validate_certs: false
+    user: "{{ gitea_user }}"
+    password: "{{ gitea_user_password }}"
+    force_basic_auth: true
+    body_format: json 
+    method: POST
+    body:
+      branch_filter: main
+      type: gitea
+      config: "{ \"url\": \"{{ eda_webhook_url }}\", \"content-type\": \"json\", \"secret\": \"\" }"
+      events:
+      - push
+      active: true
+    status_code:
+    - 201
+    - 409
+  when: not hookexists or hookexists is undefined
+  delegate_to: localhost

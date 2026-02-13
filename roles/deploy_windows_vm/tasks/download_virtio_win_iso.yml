@@ -1,0 +1,8 @@
+---
+# This tasks downloads and places virtio windows drivers and places it in
+# {{ software_dir }} directory
+- name: Download virtio win drivers
+  ansible.builtin.get_url: 
+    url: "{{ virt_io_download_link }}"
+    dest: "{{ software_dir }}"
+    mode: "0644"

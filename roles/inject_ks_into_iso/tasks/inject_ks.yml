@@ -1,0 +1,42 @@
+---
+# This task creates a custom ISO with custom anaconda kickstart file       
+- name: Create a custom anaconda kickstart file
+  block:
+  - name: Create a temp directory to store the generated kickstart file
+    ansible.builtin.tempfile:
+      state: file
+      suffix: ks
+    register: builder_kickstart
+  - name: Store the path in fact
+    ansible.builtin.set_fact:
+      ksfile: "{{ builder_kickstart.path }}"
+  - name: Debug the kickstart file path
+    ansible.builtin.debug:
+      msg: "Kickstart file: {{ ksfile }}"
+  - name: Generate kickstart file
+    ansible.builtin.template:
+      src: "kickstart.ks.j2"
+      dest: "{{ ksfile }}"
+  - name: Slurp kickstart file to debug
+    ansible.builtin.slurp:
+      src: "{{ ksfile }}"
+    register: kickstart_content
+  - name: Display kickstart contents
+    ansible.builtin.debug:
+      msg: "{{ kickstart_content['content'] | b64decode }}"
+  - name: Validate the kickstart file
+    ansible.builtin.command: "ksvalidator {{ ksfile }}"
+    changed_when: false
+
+- name: Inject the custom anaconda kickstart into ISO
+  ansible.builtin.command: |
+    mkksiso --ks {{ ksfile }} {{ artifact_file }} {{ artifact_file_with_ks }}
+  register: mkksiso_result
+
+- name: Debug mkksiso result
+  ansible.builtin.debug:
+    var: mkksiso_result
+
+- name: Debug artifact with custom ks 
+  ansible.builtin.debug:
+    msg: "Download ISO with custom kickstart from: {{ artifact_file_with_ks }}"

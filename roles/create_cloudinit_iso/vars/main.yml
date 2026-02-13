@@ -1,0 +1,5 @@
+---
+# vars file for ./roles/create_cloudinit_iso
+hostname: ""
+iso_name: ""
+

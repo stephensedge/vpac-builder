@@ -1,0 +1,8 @@
+---
+# tasks file for ./roles/register_system
+- name: Register system
+  become: yes
+  ansible.builtin.import_tasks: register.yml
+    
+- name: Rebooting host machine after updating packages
+  ansible.builtin.import_tasks: reboot_host.yml    

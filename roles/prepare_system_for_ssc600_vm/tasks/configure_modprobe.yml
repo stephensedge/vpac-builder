@@ -1,0 +1,15 @@
+---
+# This task configure modprob options
+# Reused from https://github.com/kwozyman/vpac
+- name: Write modprobe options
+  ansible.builtin.template:
+    src: modprobe-ssc600.conf.j2
+    dest: /etc/modprobe.d/ssc600.conf
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  register: modprobe_options
+
+- name: Regenerate dracut
+  ansible.builtin.shell: dracut -f
+  when: modprobe_options.changed

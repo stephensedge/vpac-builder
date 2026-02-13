@@ -1,0 +1,33 @@
+---
+# This tasks creates a blueprint using the image definition vars and modules from 
+# infra.osbuild collection
+- name: create temp file to store blueprint
+  ansible.builtin.tempfile:
+    state: file
+    suffix: toml
+  register: builder_blueprint_file_result
+
+- name: set blueprint file in fact
+  ansible.builtin.set_fact:
+    builder_blueprint_file: "{{ builder_blueprint_file_result.path }}"
+
+- name: Create blueprint
+  infra.osbuild.create_blueprint:
+    dest: "{{ builder_blueprint_file }}"
+    name: "{{ builder_blueprint_name }}"
+    description: "{{ builder_blueprint_description }}"
+    distro: "{{ builder_blueprint_distro | default(omit) }}"
+    packages: "{{ builder_compose_pkgs | default(omit) }}"
+    customizations: "{{ builder_compose_customizations | default(omit) }}"
+
+- name: push the blueprint to imagebuilder
+  infra.osbuild.push_blueprint:
+    src: "{{ builder_blueprint_file }}"
+
+- name: Get new blueprint version
+  ansible.builtin.shell: composer-cli --json blueprints show "{{ builder_blueprint_name }}" | jq -r ".[].body.blueprints[].version"
+  register: new_blueprint_version_result
+
+- name: Setting current blueprint version
+  ansible.builtin.set_fact:
+    blueprint_version: "{{ new_blueprint_version_result.stdout }}"

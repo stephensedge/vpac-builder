@@ -1,0 +1,25 @@
+---
+# This task deploys a virtual machine to RHEL kvm
+- name: Checking if disk image exists
+  ansible.builtin.stat:
+    path: "{{ vm_disk_path }}"
+  register: check_disk_exists
+
+- name: Create disk image if one doesn't exist
+  when: not check_disk_exists.stat.exists
+  ansible.builtin.command:
+    cmd: >
+      qemu-img create -f qcow2 {{ vm_disk_path }}/{{ vm_primary_disk }} {{ vm_disk_size }}
+  args:
+    creates: "{{ vm_disk_path }}/{{ vm_primary_disk }}"
+
+- name: Define VM
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', 'libvirt-domain.xml.j2') }}"
+
+- name: Start the VM
+  community.libvirt.virt:
+    name: "{{ vm_name }}"
+    state: running
+    

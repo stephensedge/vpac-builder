@@ -1,0 +1,39 @@
+---
+# This tasks runs a osbuild compose job to compose an image installer (iso) file
+# for automated and unattended provisioning of RHEL based systems for deploying
+# virtualized protection and control workloads
+- name: Start Compose
+  block:
+  - name: Check whether components listed in blueprint and dependencies are valid
+    ansible.builtin.shell: |
+      composer-cli --json blueprints depsolve {{ builder_blueprint_name }} | jq -r ".[].body.errors | length"
+    register: depsolve_result
+  - name: fail when errors
+    assert:
+      that: 
+      - depsolve_result.stdout != 0
+      fail_msg: "Depsolve errors in blueprint"
+  - name: Start compose
+    ansible.builtin.shell: |
+      composer-cli --json compose start {{ builder_blueprint_name }} image-installer | jq -r ".[].body.build_id"
+    register: compose_start_result
+  - name: Set job id in fact
+    ansible.builtin.set_fact:
+      compose_job_id: "{{ compose_start_result.stdout }}"
+  - name: Debug job id
+    ansible.builtin.debug:
+      msg: "Compose job id = {{ compose_job_id }}"  
+
+- name: wait for compose to finish
+  ansible.builtin.shell: |
+    composer-cli --json compose info {{ compose_job_id }} | jq -r ".[].body.queue_status"
+  until: check_status_result.stdout not in ["RUNNING", "WAITING"]
+  retries: "{{ retries }}"
+  delay: "{{ delay }}"
+  register: check_status_result
+
+- name: Make sure compose job successfully completed before proceeding further 
+  ansible.builtin.assert:
+    that: 
+    - check_status_result.stdout == "FINISHED"
+    fail_msg: "Compose failed"

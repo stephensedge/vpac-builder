@@ -1,0 +1,4 @@
+---
+# tasks file for ./roles/deploy_otelcollector
+- name: Deploy otel collector with config
+  ansible.builtin.import_tasks: deploy.yml

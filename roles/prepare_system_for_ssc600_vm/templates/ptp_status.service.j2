@@ -1,0 +1,16 @@
+[Unit]
+Description=PTP sync status service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+#User=root
+Environment=PTP_STATUS_FOLDER={{ ssc600_ptp.status_dir }}
+Environment=PTP4L_SOCKET_PATH={{ ssc600_ptp.socket }}
+ExecStart=/usr/sbin/ptp_status.sh
+
+[Install]
+WantedBy=multi-user.target

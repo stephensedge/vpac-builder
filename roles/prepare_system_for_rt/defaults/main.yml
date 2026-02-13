@@ -1,0 +1,54 @@
+---
+# defaults file for ./roles/prepare_system_for_rt
+tuned:
+  profile: realtime-virtual-host
+  rt_cores: 11-21
+
+bootloader_settings:
+- kernel: ALL
+  options:
+  - name: quiet
+    state: absent
+  - name: default_hugepagesz
+    value: 1GB
+  - name: idle
+    value: poll
+  - name: intel.max_cstate
+    value: 0
+  - name: intel_idle.max_cstate
+    value: 0
+  - name: processor.max_cstate
+    value: 0
+  - name: processor_idle.max_cstate
+    value: 0
+  - name: intel_pstate
+    value: disable
+  - name: rdt
+    value: cmt,l3cat,l3cdp,mba
+  - name: iomem
+    value: relaxed
+  - name: intel_iommu
+    value: "on"
+  - name: iommu
+    value: pt
+  - name: selinux
+    value: 0
+  - name: audit
+    value: 0
+  - name: ipv6.disable
+    value: 1
+
+kernel_settings_sysctl:
+- name: kernel.nmi_watchdog
+  value: 0
+- name: kernel.sched_rt_runtime_us
+  value: -1
+- name: vm.nr_hugepages
+  value: 10
+
+timesync_ntp_providers: chrony
+timesync_ptp_domains:
+- number: 0
+  interfaces:
+  - "{{ processbus_nic }}"
+  transport: L2

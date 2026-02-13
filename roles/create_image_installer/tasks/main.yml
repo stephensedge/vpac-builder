@@ -1,0 +1,14 @@
+---
+# tasks file for ./roles/build_iso
+- name: Preflight steps
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Create blueprint
+  when: not skip_blueprint_creation | bool
+  become: yes
+  ansible.builtin.import_tasks: create_blueprint.yml
+
+- name: Compose image installer
+  become: yes
+  ansible.builtin.import_tasks: compose.yml
+

@@ -1,0 +1,24 @@
+---
+# This tasks setups up intel cache allocation technology
+# Reused from https://github.com/kwozyman/vpac
+- name: Install helpful packages
+  ansible.builtin.dnf:
+    name: intel-cmt-cat
+    state: present
+
+- name: Setup resctrl mount
+  ansible.builtin.template:
+    src: 'sys-fs-resctrl.mount'
+    dest: /etc/systemd/system/sys-fs-resctrl.mount
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  register: resctrl_mount
+
+- name: Mount resctrl
+  ansible.builtin.systemd:
+    name: sys-fs-resctrl.mount
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  when: resctrl_mount.changed

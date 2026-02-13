@@ -1,0 +1,51 @@
+---
+# This task installs influxdb
+- name: Create yum repo file
+  ansible.builtin.copy:
+    dest: /etc/yum.repos.d/influxdb.repo
+    content: |
+      [influxdata]
+      name = InfluxData Repository - Stable
+      baseurl = https://repos.influxdata.com/stable/${basearch}/main
+      enabled = 1
+      gpgcheck = 1
+      gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-influxdata
+
+- name: Download the GPG KEY to verify downloads from influxdata repos
+  ansible.builtin.shell: |
+    curl --silent --location -O \
+      https://repos.influxdata.com/influxdata-archive.key \
+      && echo "40557e261cdbdccac91a2dde474cbf101ef672661e64b211b711cc0b904d5dac influxdata-archive.key" \
+      | sha256sum --check - && cat influxdata-archive.key \
+      | gpg --dearmor \
+      | tee /etc/pki/rpm-gpg/RPM-GPG-KEY-influxdata > /dev/null
+
+- name: Install influxdb
+  ansible.builtin.dnf:
+    name: influxdb2
+    state: latest
+
+- name: Start influxdb
+  ansible.builtin.systemd:
+    name: influxdb.service
+    state: started
+    enabled: true
+
+- name: Check if firewalld is installed
+  shell: rpm -q firewalld
+  register: firewalld_installed
+  ignore_errors: yes
+
+- name: Open TCP ports for influx
+  when: firewalld_installed.rc == 0
+  firewalld:
+    port: "{{ influx_port | default('8086') }}/tcp"
+    permanent: yes
+    state: enabled
+    zone: public
+    
+- name: Reload firewall
+  when: firewalld_installed.rc == 0
+  ansible.builtin.systemd:
+    name: firewalld
+    state: reloaded

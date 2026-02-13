@@ -1,0 +1,9 @@
+# tasks file for ./roles/deploy_vm
+---
+- name: Preflight
+  become: yes
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Deploy VM
+  become: yes
+  ansible.builtin.import_tasks: deploy.yml

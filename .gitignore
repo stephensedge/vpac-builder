@@ -1,0 +1,14 @@
+**/.DS_Store
+
+# inventory
+*.ini
+
+# VSCode settings file
+/.vscode/settings.json
+
+playbooks/vars/secrets.yml
+playbooks/vars/main.yml
+playbooks/inventory
+
+# Local AI assistant instructions
+CLAUDE.md

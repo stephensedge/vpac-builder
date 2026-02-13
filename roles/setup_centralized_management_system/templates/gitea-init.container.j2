@@ -1,0 +1,22 @@
+[Unit]
+Description=Initialize Gitea
+PartOf=gitea.target
+
+[Container]
+Image=registry.access.redhat.com/ubi9/ubi-minimal:9.7-1763362218
+ContainerName=gitea-init
+Pull=missing
+Volume=gitea-data:/data:Z
+Volume=/usr/share/gitea/config:/config-source:ro
+Exec=/bin/sh /config-source/init.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=gitea.target
