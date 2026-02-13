@@ -5,6 +5,7 @@ users:
   - "{{ admin_user_ssh_pubkey }}"
   groups: ["wheel"]
   passwd: "{{ admin_user_password | password_hash('sha512') }}"
+  lock_passwd: false
   shell: /bin/bash
   sudo: ['ALL=(ALL) NOPASSWD:ALL']
 
@@ -15,3 +16,5 @@ chpasswd:
 runcmd:
 - echo "Cloud-Init completed successfully" > /var/log/cloud-init-success.log
 - echo "Welcome to vPAC on RHEL" > /etc/motd
+- sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+- systemctl restart sshd
