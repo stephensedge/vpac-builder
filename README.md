@@ -64,26 +64,11 @@ The compose can take a long time (30+ minutes). The playbook polls every 20 seco
 
 ### Step 4: Create Cloud-Init Seed ISO
 
-Generates a cloud-init seed ISO that configures hostname, admin user, SSH keys, and networking on first boot.
+Generates a cloud-init seed ISO that configures hostname, admin user, SSH keys, and networking on first boot. This does not require `--become`.
 
 ```bash
-ansible-playbook playbooks/create_cloudinit_iso.yml -i localhost, --connection=local
+ansible-playbook playbooks/create_cloudinit_iso.yml -i localhost, --connection=local -e hostname=vpac-host1
 ```
-
-This does not require `--become` — it only creates files in `/tmp`.
-
-### Step 5: Write ISOs to USB and Deploy
-
-Write both ISOs to separate USB drives:
-
-```bash
-sudo dd if=vpac-rhel9-base_0.0.1-ks.iso of=/dev/sdX bs=4M status=progress conv=fsync
-sudo dd if=vpac-host1-seed.iso of=/dev/sdY bs=4M status=progress conv=fsync
-```
-
-Plug both USBs into the target bare-metal host and boot from the kickstart ISO. The installer runs unattended. On first boot, cloud-init automatically detects the seed USB (labeled `cidata`) and applies the hostname, user, and SSH key configuration — no manual steps needed.
-
-The kickstart `%post` section pre-configures the NoCloud datasource so cloud-init works out of the box on bare metal.
 
 To provision multiple hosts, create a different seed ISO per host:
 
@@ -91,7 +76,51 @@ To provision multiple hosts, create a different seed ISO per host:
 ansible-playbook playbooks/create_cloudinit_iso.yml -i localhost, --connection=local -e hostname=vpac-host2
 ```
 
+### Step 5: Copy ISOs from /tmp
+
+Both playbooks output ISOs to temporary directories owned by root. Copy them somewhere permanent:
+
+```bash
+sudo cp /tmp/ansible.*vpac-rhel9-base/*-ks.iso /home/admin/
+sudo cp /tmp/ansible.*iso/*-seed.iso /home/admin/
+sudo chown admin:admin /home/admin/*.iso
+```
+
+### Step 6: Write ISOs to USB and Deploy
+
+Write both ISOs to separate USB drives:
+
+```bash
+sudo dd if=vpac-rhel9-base_<version>-ks.iso of=/dev/sdX bs=4M status=progress conv=fsync
+sudo dd if=vpac-host1-seed.iso of=/dev/sdY bs=4M status=progress conv=fsync
+```
+
+Plug both USBs into the target bare-metal host and boot from the kickstart ISO. The installer runs unattended. On first boot, cloud-init automatically detects the seed USB (labeled `cidata`) and applies the hostname, user, and SSH key configuration — no manual steps needed.
+
+The kickstart `%post` section pre-configures the NoCloud datasource so cloud-init works out of the box on bare metal.
+
 Reuse the same kickstart USB — just swap the seed USB for each machine.
+
+## Maintenance
+
+### Cleaning Up Old Composes
+
+List and delete old composes to free disk space:
+
+```bash
+sudo composer-cli compose list
+sudo composer-cli compose delete <job-id>
+```
+
+### Cleaning Up Temp Files
+
+```bash
+sudo rm -rf /tmp/ansible.*
+```
+
+### Rebuilding
+
+The kickstart ISO only needs to be rebuilt when you change packages, partitioning, or kickstart options in `create_iso.yml`. Seed ISOs are quick to regenerate per host.
 
 ## Playbooks
 
