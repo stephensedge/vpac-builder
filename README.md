@@ -81,22 +81,17 @@ sudo dd if=vpac-rhel9-base_0.0.1-ks.iso of=/dev/sdX bs=4M status=progress conv=f
 sudo dd if=vpac-host1-seed.iso of=/dev/sdY bs=4M status=progress conv=fsync
 ```
 
-Plug both USBs into the target bare-metal host and boot from the kickstart ISO. The installer runs unattended.
+Plug both USBs into the target bare-metal host and boot from the kickstart ISO. The installer runs unattended. On first boot, cloud-init automatically detects the seed USB (labeled `cidata`) and applies the hostname, user, and SSH key configuration — no manual steps needed.
 
-**Important:** RHEL 9 disables cloud-init by default on bare metal. After the first boot, you must configure the NoCloud datasource on the target host for cloud-init to pick up the seed USB:
+The kickstart `%post` section pre-configures the NoCloud datasource so cloud-init works out of the box on bare metal.
+
+To provision multiple hosts, create a different seed ISO per host:
 
 ```bash
-cat > /etc/cloud/cloud.cfg.d/99-nocloud.cfg << 'EOF'
-datasource_list: [NoCloud, None]
-datasource:
-  NoCloud:
-    fs_label: cidata
-EOF
-cloud-init clean --logs
-reboot
+ansible-playbook playbooks/create_cloudinit_iso.yml -i localhost, --connection=local -e hostname=vpac-host2
 ```
 
-After reboot, cloud-init will detect the seed USB (labeled `cidata`) and apply the hostname, user, and SSH key configuration.
+Reuse the same kickstart USB — just swap the seed USB for each machine.
 
 ## Playbooks
 
@@ -197,4 +192,6 @@ Forked from [rprakashg/vpac](https://github.com/rprakashg/vpac). Key adaptations
 - Role references changed from fully-qualified collection names (`rprakashg.vpac.*`) to local names
 - Added `ansible.cfg` with `roles_path` for standalone execution
 - Added `create_cloudinit_iso.yml` playbook for generating cloud-init seed ISOs
+- Added NoCloud datasource config to kickstart `%post` for automatic cloud-init on bare metal
+- Fixed cloud-init user-data schema (`ssh_pwauth` and `chpasswd` moved to top-level)
 - Fixed depsolve assertion logic in `create_image_installer` compose task
