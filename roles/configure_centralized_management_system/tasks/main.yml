@@ -3,7 +3,7 @@
 - name: Configure Image Builder
   when: config_imagebuilder | default(true)
   ansible.builtin.include_role:
-    name: rprakashg.vpac.setup_imagebuilder
+    name: setup_imagebuilder
 
 - name: Configure gitea
   become: true

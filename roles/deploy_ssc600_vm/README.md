@@ -43,7 +43,7 @@ Including an example of how to use this role (for instance, with variables passe
 ```yaml
 - name: Execute role
   ansible.builtin.import_role:
-    name: rprakashg.vpac.deploy_ssc600sw.yml
+    name: deploy_ssc600_vm
   vars:
     ssc600_vm:
       name: ssc600-1

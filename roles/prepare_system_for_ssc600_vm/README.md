@@ -52,7 +52,7 @@ Including an example playbook to demonstrate how to leverage this role.
 ```yaml
 - name: Import role
   ansible.builtin.import_role:
-    name: rprakashg.vpac.prepare_system_for_ssc600sw
+    name: prepare_system_for_ssc600_vm
   vars:
     rt_config:
       non_rt_cores_cat: f

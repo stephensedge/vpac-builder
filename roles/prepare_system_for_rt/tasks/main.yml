@@ -9,7 +9,7 @@
 - name: Register system if not already registered
   when: not registered.stat.exists
   ansible.builtin.include_role: 
-    name: rprakashg.vpac.register_system
+    name: register_system
 
 - name: Configure system using linux system roles
   become: yes

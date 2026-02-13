@@ -29,7 +29,7 @@ Example playbook demonstrates how to use this role.
 tasks:
   - name: Import role
     ansible.builtin.import_role:
-      name: rprakashg.vpac.setup_imagebuilder
+      name: setup_imagebuilder
 ```
 
 You can find the full example playbook [here](../../playbooks/setup_imagebuilder.yml)

@@ -42,7 +42,7 @@ tasks:
 
   - name: Import role
     ansible.builtin.import_role:
-      name: rprakashg.vpac.create_image_installer
+      name: create_image_installer
 ```
 
 Full playbook can be found [here](../../playbooks/create_iso.yml)

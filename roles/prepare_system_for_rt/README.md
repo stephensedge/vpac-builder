@@ -42,7 +42,7 @@ Including an example of how to use this role (for instance, with variables passe
 ```yaml
 - name: Import role
   ansible.builtin.import_role:
-    name: rprakashg.vpac.prepare_system_for_rt
+    name: prepare_system_for_rt
   vars:
     tuned:
       profile: realtime-virtual-host
