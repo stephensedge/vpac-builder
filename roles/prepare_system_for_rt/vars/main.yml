@@ -1,8 +1,4 @@
 ---
 # vars file for ./roles/prepare_system_for_rt
+# processbus_nic must be set per-host (e.g. in playbook vars or inventory)
 processbus_nic: ""
-
-tuned:
-  profile: ""
-  rt_cores: ""
-  
