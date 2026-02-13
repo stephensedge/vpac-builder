@@ -12,7 +12,7 @@
 
   - name: Create image installer
     ansible.builtin.import_role:
-      name: rprakashg.vpac.create_image_installer
+      name: create_image_installer
     vars:
       retries: 100
       delay: 20
@@ -62,7 +62,7 @@
 
   - name: Create iso with custom kickstart
     ansible.builtin.import_role:
-      name: rprakashg.vpac.create_iso
+      name: inject_ks_into_iso
     vars:
       builder_blueprint_name: "vpac-rhel9-base"
 
