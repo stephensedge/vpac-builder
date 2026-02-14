@@ -14,6 +14,6 @@
     ansible.builtin.import_role:
       name: create_cloudinit_iso
     vars:
-      hostname: vpac-host1
+      hostname: "{{ hostname | default('vpac-host') }}"
       admin_user: admin
-      iso_name: vpac-host1-seed.iso
+      iso_name: "{{ hostname | default('vpac-host') }}-seed.iso"
