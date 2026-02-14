@@ -1,0 +1,13 @@
+# Inventory file for running playbooks against localhost.
+# Copy this file to 'inventory' if you prefer using an inventory file
+# instead of passing '-i localhost, --connection=local' on every command:
+#
+#   cp inventory.example inventory
+#
+# Then run playbooks with:
+#   ansible-playbook playbooks/<playbook>.yml -i playbooks/inventory --become --ask-become-pass
+#
+# inventory is gitignored and will not be committed.
+
+[all]
+localhost ansible_connection=local

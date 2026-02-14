@@ -1,0 +1,22 @@
+---
+# Optional variables for playbooks.
+# Copy this file to main.yml and uncomment/edit as needed:
+#
+#   cp main.yml.example main.yml
+#
+# main.yml is gitignored and will not be committed.
+
+# Additional users to create via cloud-init (beyond the default admin user).
+# Each user gets lock_passwd: false, wheel group, and NOPASSWD sudo by default.
+# All fields except 'name' and 'password' are optional.
+#
+# additional_users:
+#   - name: operator
+#     password: changeme
+#     ssh_pubkey: "ssh-ed25519 AAAA... operator@host"
+#     groups: wheel
+#     shell: /bin/bash
+#     sudo: "ALL=(ALL) NOPASSWD:ALL"
+#   - name: engineer
+#     password: changeme
+#     groups: wheel

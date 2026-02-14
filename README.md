@@ -128,22 +128,29 @@ Installs and configures `osbuild-composer`, Cockpit, and adds package sources fo
 ansible-playbook playbooks/setup_imagebuilder.yml -i localhost, --connection=local --become --ask-become-pass
 ```
 
-### Step 2: Create Secrets File
+### Step 2: Create Configuration Files
 
-Create `playbooks/vars/secrets.yml` with your credentials:
+Example files are provided in the repo. Copy and edit them:
 
-```yaml
----
-root_password: your_password_here
-admin_user_password: your_password_here
-admin_user_ssh_pubkey: "ssh-ed25519 AAAA... user@host"
+```bash
+cp playbooks/vars/secrets.yml.example playbooks/vars/secrets.yml
+cp playbooks/vars/main.yml.example playbooks/vars/main.yml        # optional
+cp playbooks/inventory.example playbooks/inventory                  # optional
 ```
 
-- `root_password` — root password baked into the kickstart ISO
-- `admin_user_password` — password for the `admin` user created by cloud-init
-- `admin_user_ssh_pubkey` — public key added to the `admin` user's `authorized_keys` (e.g. contents of `~/.ssh/id_ed25519.pub`)
+**`secrets.yml`** (required) — sensitive variables used by the ISO and cloud-init playbooks:
 
-This file is gitignored. Optionally encrypt it with Ansible Vault:
+| Variable | Description |
+|----------|-------------|
+| `root_password` | Root password baked into the kickstart ISO |
+| `admin_user_password` | Password for the `admin` user created by cloud-init |
+| `admin_user_ssh_pubkey` | Public key added to the admin user's `authorized_keys` (e.g. contents of `~/.ssh/id_ed25519.pub`) |
+
+**`main.yml`** (optional) — additional variables such as extra users to provision via cloud-init. See the example file for the `additional_users` format.
+
+**`inventory`** (optional) — if you prefer not to pass `-i localhost, --connection=local` on every command, copy the inventory example and run playbooks with `-i playbooks/inventory` instead.
+
+All three files are gitignored and will not be committed. Optionally encrypt secrets with Ansible Vault:
 
 ```bash
 ansible-vault encrypt playbooks/vars/secrets.yml
@@ -333,8 +340,10 @@ vpac-builder/
 │   ├── prepare_system_for_ssc600sw.yml
 │   ├── deploy_ssc600sw.yml
 │   ├── create_windows_vm.yml
+│   ├── inventory.example    # copy to 'inventory' — localhost inventory
 │   └── vars/
-│       ├── secrets.yml      # gitignored — root_password, admin_user_password, admin_user_ssh_pubkey
+│       ├── secrets.yml.example  # copy to secrets.yml — required credentials
+│       ├── main.yml.example     # copy to main.yml — optional extra variables
 │       └── .gitignore
 └── roles/
     ├── setup_imagebuilder/
