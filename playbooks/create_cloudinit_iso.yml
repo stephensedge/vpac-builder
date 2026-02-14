@@ -10,6 +10,11 @@
     ansible.builtin.include_vars:
       file: "./vars/secrets.yml"
 
+  - name: Load optional variables
+    ansible.builtin.include_vars:
+      file: "./vars/main.yml"
+    when: lookup('ansible.builtin.fileglob', playbook_dir + '/vars/main.yml') | length > 0
+
   - name: Create cloud-init seed ISO
     ansible.builtin.import_role:
       name: create_cloudinit_iso
